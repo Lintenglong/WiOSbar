@@ -225,7 +225,7 @@ public sealed class ThemeManager
     /// <summary>
     /// 获取主题预览色（用于设置 UI）
     /// </summary>
-    public static Color GetPreviewColor(string hexColor)
+    public static System.Windows.Media.Color GetPreviewColor(string hexColor)
     {
         try
         {
