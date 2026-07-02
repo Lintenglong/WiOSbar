@@ -1,17 +1,16 @@
-using System.Management;
+﻿using System.Management;
 using System.Windows.Threading;
 
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// 蓝牙设备电量监控器 - 监控耳机、手柄等设备的电量
-/// </summary>
+/// 钃濈墮璁惧鐢甸噺鐩戞帶鍣?- 鐩戞帶鑰虫満銆佹墜鏌勭瓑璁惧鐨勭數閲?/// </summary>
 public sealed class BluetoothBatteryMonitor : ISystemMonitor
 {
     public string Id => "bluetooth_battery";
-    public string Name => "蓝牙电量";
-    public string Description => "蓝牙设备电量监控";
-    public string Icon => "🔋";
+    public string Name => "钃濈墮鐢甸噺";
+    public string Description => "钃濈墮璁惧鐢甸噺鐩戞帶";
+    public string Icon => "馃攱";
     public bool Enabled { get; set; } = true;
     public event Action<IslandEvent>? EventTriggered;
 
@@ -24,12 +23,10 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
         if (_isRunning) return;
         _isRunning = true;
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) }; // 5 分钟检查一次
-        _timer.Tick += (_, _) => CheckBluetoothBattery();
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) }; // 5 鍒嗛挓妫€鏌ヤ竴娆?        _timer.Tick += (_, _) => CheckBluetoothBattery();
         _timer.Start();
 
-        // 首次延迟 10 秒检查
-        _ = new DispatcherTimer
+        // 棣栨寤惰繜 10 绉掓鏌?        _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(10)
         }.Apply(t =>
@@ -39,8 +36,7 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
                 t.Stop();
                 CheckBluetoothBattery();
             };
-            t.Start();
-        });
+            _timer.Start();
     }
 
     public void Stop()
@@ -57,7 +53,7 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
 
         try
         {
-            // 使用 WMI 查询蓝牙设备
+            // 浣跨敤 WMI 鏌ヨ钃濈墮璁惧
             var searcher = new ManagementObjectSearcher(
                 "SELECT * FROM Win32_PnPEntity WHERE PNPClass = 'Bluetooth'");
 
@@ -66,20 +62,19 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
                 var deviceName = device["Name"]?.ToString() ?? "Unknown Device";
                 var deviceId = device["DeviceID"]?.ToString() ?? "";
 
-                // 尝试获取电量（某些蓝牙设备支持）
+                // 灏濊瘯鑾峰彇鐢甸噺锛堟煇浜涜摑鐗欒澶囨敮鎸侊級
                 var batteryLevel = GetBatteryLevel(deviceId);
 
                 if (batteryLevel.HasValue)
                 {
-                    // 检查是否需要触发事件
-                    if (ShouldTriggerEvent(deviceName, batteryLevel.Value))
+                    // 妫€鏌ユ槸鍚﹂渶瑕佽Е鍙戜簨浠?                    if (ShouldTriggerEvent(deviceName, batteryLevel.Value))
                     {
                         var iconKind = batteryLevel.Value <= 20 ? "battery_low" : "battery";
 
                         EventTriggered?.Invoke(new IslandEvent(
                             Source: Id,
                             Title: $"{deviceName}",
-                            Content: $"电量 {batteryLevel.Value}%",
+                            Content: $"鐢甸噺 {batteryLevel.Value}%",
                             IconKind: iconKind));
                     }
 
@@ -89,7 +84,7 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
         }
         catch
         {
-            // 静默失败（WMI 可能不可用）
+            // 闈欓粯澶辫触锛圵MI 鍙兘涓嶅彲鐢級
         }
     }
 
@@ -97,9 +92,8 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
     {
         try
         {
-            // 尝试通过 WMI 获取电池信息
-            // 注意：这需要设备支持电池报告
-            var searcher = new ManagementObjectSearcher(
+            // 灏濊瘯閫氳繃 WMI 鑾峰彇鐢垫睜淇℃伅
+            // 娉ㄦ剰锛氳繖闇€瑕佽澶囨敮鎸佺數姹犳姤鍛?            var searcher = new ManagementObjectSearcher(
                 $"SELECT * FROM Win32_Battery WHERE DeviceID LIKE '%{deviceId.Split('&').LastOrDefault()}%'");
 
             foreach (var battery in searcher.Get())
@@ -118,8 +112,7 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
 
     private bool ShouldTriggerEvent(string deviceName, int batteryLevel)
     {
-        // 低电量警告（<= 20%）
-        if (batteryLevel <= 20)
+        // 浣庣數閲忚鍛婏紙<= 20%锛?        if (batteryLevel <= 20)
         {
             if (!_lastBatteryLevels.ContainsKey(deviceName) ||
                 _lastBatteryLevels[deviceName] > 20)
@@ -128,13 +121,13 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
             }
         }
 
-        // 电量变化超过 10%
+        // 鐢甸噺鍙樺寲瓒呰繃 10%
         if (_lastBatteryLevels.TryGetValue(deviceName, out var lastLevel))
         {
             return Math.Abs(batteryLevel - lastLevel) >= 10;
         }
 
-        // 首次检测到设备
+        // 棣栨妫€娴嬪埌璁惧
         return true;
     }
 
@@ -143,3 +136,4 @@ public sealed class BluetoothBatteryMonitor : ISystemMonitor
         Stop();
     }
 }
+

@@ -1,18 +1,18 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows.Threading;
 
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// 磁盘活动监控
+/// 纾佺洏娲诲姩鐩戞帶
 /// </summary>
 public sealed class DiskMonitor : ISystemMonitor
 {
     public string Id => "disk";
-    public string Name => "磁盘";
-    public string Description => "磁盘读写活动监控";
-    public string Icon => ""; // Segoe MDL2 HardDrive
+    public string Name => "纾佺洏";
+    public string Description => "纾佺洏璇诲啓娲诲姩鐩戞帶";
+    public string Icon => "瞍?; // Segoe MDL2 HardDrive
     public bool Enabled { get; set; } = true;
     public event Action<IslandEvent>? EventTriggered;
 
@@ -30,7 +30,7 @@ public sealed class DiskMonitor : ISystemMonitor
         if (_isRunning) return;
         _isRunning = true;
 
-        // 获取系统盘符
+        // 鑾峰彇绯荤粺鐩樼
         try
         {
             _systemDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C";
@@ -62,8 +62,7 @@ public sealed class DiskMonitor : ISystemMonitor
         _timer.Tick += (_, _) => CheckDisk();
         _timer.Start();
 
-        // 首次延迟检查
-        _ = new DispatcherTimer
+        // 棣栨寤惰繜妫€鏌?        _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
         }.Apply(t =>
@@ -73,8 +72,7 @@ public sealed class DiskMonitor : ISystemMonitor
                 t.Stop();
                 CheckDisk();
             };
-            t.Start();
-        });
+            _timer.Start();
     }
 
     public void Stop()
@@ -94,12 +92,12 @@ public sealed class DiskMonitor : ISystemMonitor
             var readBytes = _diskReadCounter.NextValue();
             var writeBytes = _diskWriteCounter.NextValue();
 
-            // 转换为 MB/s
+            // 杞崲涓?MB/s
             var readMB = readBytes / (1024 * 1024);
             var writeMB = writeBytes / (1024 * 1024);
             var totalMB = readMB + writeMB;
 
-            // 仅在磁盘活动显著（> 5MB/s）或变化大时触发
+            // 浠呭湪纾佺洏娲诲姩鏄捐憲锛? 5MB/s锛夋垨鍙樺寲澶ф椂瑙﹀彂
             var prevTotal = (_lastReadBytes + _lastWriteBytes) / (1024 * 1024);
             var shouldTrigger = totalMB > 5 && Math.Abs(totalMB - prevTotal) > 3;
 
@@ -113,19 +111,19 @@ public sealed class DiskMonitor : ISystemMonitor
                 if (totalMB > 50)
                 {
                     iconKind = "disk_active";
-                    title = "磁盘繁忙";
-                    content = $"读 {readMB:F1} / 写 {writeMB:F1} MB/s";
+                    title = "纾佺洏绻佸繖";
+                    content = $"璇?{readMB:F1} / 鍐?{writeMB:F1} MB/s";
                 }
                 else if (totalMB > 20)
                 {
                     iconKind = "disk";
-                    title = "磁盘活动";
-                    content = $"读 {readMB:F1} / 写 {writeMB:F1} MB/s";
+                    title = "纾佺洏娲诲姩";
+                    content = $"璇?{readMB:F1} / 鍐?{writeMB:F1} MB/s";
                 }
                 else
                 {
                     iconKind = "disk";
-                    title = "磁盘";
+                    title = "纾佺洏";
                     content = $"{totalMB:F0} MB/s";
                 }
 
@@ -138,7 +136,7 @@ public sealed class DiskMonitor : ISystemMonitor
         }
         catch
         {
-            // 静默失败
+            // 闈欓粯澶辫触
         }
     }
 
@@ -149,3 +147,4 @@ public sealed class DiskMonitor : ISystemMonitor
         _diskWriteCounter?.Dispose();
     }
 }
+

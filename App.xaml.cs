@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows;
 using System.Windows.Forms;
@@ -31,8 +31,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Phase 3：启用崩溃恢复机制
-        EnableCrashRecovery();
+        // Phase 3锛氬惎鐢ㄥ穿婧冩仮澶嶆満鍒?        EnableCrashRecovery();
 
         _settings = FluidBarSettings.Load();
         _usageStats = UsageStatistics.Load();
@@ -41,22 +40,18 @@ public partial class App : Application
         SetupTrayIcon();
         SetupThemeWatcher();
 
-        // 创建主窗口
-        _mainWindow = new MainWindow(_bus, _settings);
+        // 鍒涘缓涓荤獥鍙?        _mainWindow = new MainWindow(_bus, _settings);
         _mainWindow.RequestOpenSettings += OpenSettings;
         _mainWindow.Show();
 
-        // 初始化全局快捷键（Phase 2 新增）
-        SetupHotkeys();
+        // 鍒濆鍖栧叏灞€蹇嵎閿紙Phase 2 鏂板锛?        SetupHotkeys();
 
-        // 初始化专注模式检测（Phase 5 新增）
-        SetupFocusMode();
+        // 鍒濆鍖栦笓娉ㄦā寮忔娴嬶紙Phase 5 鏂板锛?        SetupFocusMode();
 
-        // 应用自启动设置（如果已启用）
+        // 搴旂敤鑷惎鍔ㄨ缃紙濡傛灉宸插惎鐢級
         ApplyStartupSetting();
 
-        // 初始化插件系统
-        _pluginManager = new PluginManager(_bus, _settings);
+        // 鍒濆鍖栨彃浠剁郴缁?        _pluginManager = new PluginManager(_bus, _settings);
         _clipboardPlugin = new ClipboardPlugin();
         _pluginManager.Register(_clipboardPlugin);
         _clipboardPlugin.AttachWindow(_mainWindow);
@@ -77,8 +72,7 @@ public partial class App : Application
             _mainWindow.SetMediaSessionProvider(mediaProvider);
         }
 
-        // 初始化系统监控
-        _monitorManager = new SystemMonitorManager(_bus, _settings);
+        // 鍒濆鍖栫郴缁熺洃鎺?        _monitorManager = new SystemMonitorManager(_bus, _settings);
         _monitorManager.Register(new VolumeMonitor());
         _monitorManager.Register(new BatteryMonitor());
         _monitorManager.Register(new InputMethodMonitor());
@@ -90,33 +84,28 @@ public partial class App : Application
         _monitorManager.Register(new ClockMonitor());
         _monitorManager.Register(new NotificationMonitor());
 
-        // 新增：系统资源监控（CPU/内存/磁盘）
-        _monitorManager.Register(new CpuMonitor());
+        // 鏂板锛氱郴缁熻祫婧愮洃鎺э紙CPU/鍐呭瓨/纾佺洏锛?        _monitorManager.Register(new CpuMonitor());
         _monitorManager.Register(new MemoryMonitor());
         _monitorManager.Register(new DiskMonitor());
 
-        // 新增：天气监控（需配置 API Key 后启用）
+        // 鏂板锛氬ぉ姘旂洃鎺э紙闇€閰嶇疆 API Key 鍚庡惎鐢級
         _monitorManager.Register(new WeatherMonitor());
 
-        // 新增：网络速度监控
+        // 鏂板锛氱綉缁滈€熷害鐩戞帶
         _monitorManager.Register(new NetworkSpeedMonitor());
 
-        // 延迟启动：确保 Window_Loaded 先完成（PositionWindow + ApplySettings）
-        // 否则事件触发时窗口尚未就位，动画被 PositionWindow 覆盖
+        // 寤惰繜鍚姩锛氱‘淇?Window_Loaded 鍏堝畬鎴愶紙PositionWindow + ApplySettings锛?        // 鍚﹀垯浜嬩欢瑙﹀彂鏃剁獥鍙ｅ皻鏈氨浣嶏紝鍔ㄧ敾琚?PositionWindow 瑕嗙洊
         System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
             System.Windows.Threading.DispatcherPriority.Background,
             new Action(() => _monitorManager.StartAll()));
 
-        // 启动时根据配置隐藏托盘图标
-        if (_settings.HideTrayIcon && _trayIcon != null)
+        // 鍚姩鏃舵牴鎹厤缃殣钘忔墭鐩樺浘鏍?        if (_settings.HideTrayIcon && _trayIcon != null)
             _trayIcon.Visible = false;
 
-        // 不再在启动时推送系统主题（避免弹出 "Dark"/"Light" 文字）
-        // 系统主题变更由 SetupThemeWatcher 中的 UserPreferenceChanged 事件处理
+        // 涓嶅啀鍦ㄥ惎鍔ㄦ椂鎺ㄩ€佺郴缁熶富棰橈紙閬垮厤寮瑰嚭 "Dark"/"Light" 鏂囧瓧锛?        // 绯荤粺涓婚鍙樻洿鐢?SetupThemeWatcher 涓殑 UserPreferenceChanged 浜嬩欢澶勭悊
     }
 
-    #region 全局快捷键
-
+    #region 鍏ㄥ眬蹇嵎閿?
     private void SetupHotkeys()
     {
         if (_mainWindow == null)
@@ -124,14 +113,10 @@ public partial class App : Application
 
         _hotkeyManager = new HotkeyManager(_mainWindow);
 
-        // 注册默认快捷键
-        // Ctrl+Alt+H: 临时隐藏灵动岛（已由 Alt 键实现，此处保留作为示例）
-        // Ctrl+Alt+M: 立即切换到媒体显示
-        // Ctrl+Alt+C: 打开剪贴板历史
-        // Ctrl+Alt+S: 打开设置面板
+        // 娉ㄥ唽榛樿蹇嵎閿?        // Ctrl+Alt+H: 涓存椂闅愯棌鐏靛姩宀涳紙宸茬敱 Alt 閿疄鐜帮紝姝ゅ淇濈暀浣滀负绀轰緥锛?        // Ctrl+Alt+M: 绔嬪嵆鍒囨崲鍒板獟浣撴樉绀?        // Ctrl+Alt+C: 鎵撳紑鍓创鏉垮巻鍙?        // Ctrl+Alt+S: 鎵撳紑璁剧疆闈㈡澘
 
-        // 注意：快捷键动作需要 MainWindow 暴露相应方法
-        // 以下为示例代码，实际使用需根据 MainWindow API 调整
+        // 娉ㄦ剰锛氬揩鎹烽敭鍔ㄤ綔闇€瑕?MainWindow 鏆撮湶鐩稿簲鏂规硶
+        // 浠ヤ笅涓虹ず渚嬩唬鐮侊紝瀹為檯浣跨敤闇€鏍规嵁 MainWindow API 璋冩暣
 
         /*
         _hotkeyManager.RegisterHotkey(
@@ -153,8 +138,7 @@ public partial class App : Application
 
     #endregion
 
-    #region 专注模式与自启动（Phase 5 新增）
-
+    #region 涓撴敞妯″紡涓庤嚜鍚姩锛圥hase 5 鏂板锛?
     private void SetupFocusMode()
     {
         if (_mainWindow == null)
@@ -165,12 +149,12 @@ public partial class App : Application
         {
             if (isFocusMode)
             {
-                // 进入专注模式，隐藏灵动岛
+                // 杩涘叆涓撴敞妯″紡锛岄殣钘忕伒鍔ㄥ矝
                 _mainWindow?.HideForFocusMode();
             }
             else
             {
-                // 退出专注模式，恢复显示
+                // 閫€鍑轰笓娉ㄦā寮忥紝鎭㈠鏄剧ず
                 _mainWindow?.ShowAfterFocusMode();
             }
         });
@@ -178,51 +162,43 @@ public partial class App : Application
 
     private void ApplyStartupSetting()
     {
-        // 检查是否需要应用自启动（首次运行或设置变更）
-        // 实际的自启动开关应在设置界面中提供
-        // 这里仅作为框架，记录当前状态
-        var isStartupEnabled = StartupManager.IsEnabled();
-        // 可选：记录到日志或使用统计
+        // 妫€鏌ユ槸鍚﹂渶瑕佸簲鐢ㄨ嚜鍚姩锛堥娆¤繍琛屾垨璁剧疆鍙樻洿锛?        // 瀹為檯鐨勮嚜鍚姩寮€鍏冲簲鍦ㄨ缃晫闈腑鎻愪緵
+        // 杩欓噷浠呬綔涓烘鏋讹紝璁板綍褰撳墠鐘舵€?        var isStartupEnabled = StartupManager.IsEnabled();
+        // 鍙€夛細璁板綍鍒版棩蹇楁垨浣跨敤缁熻
     }
 
     #endregion
 
-    #region 崩溃恢复（Phase 3 新增）
-
+    #region 宕╂簝鎭㈠锛圥hase 3 鏂板锛?
     private void EnableCrashRecovery()
     {
-        // 捕获非 UI 线程异常
+        // 鎹曡幏闈?UI 绾跨▼寮傚父
         AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
         {
             var ex = e.ExceptionObject as Exception;
             LogCrash(ex, "AppDomain.UnhandledException");
 
-            // 尝试保存状态
-            try
+            // 灏濊瘯淇濆瓨鐘舵€?            try
             {
                 _settings?.Save();
             }
             catch { }
 
-            // 如果是严重错误，记录但不阻止应用退出
-            if (e.IsTerminating)
+            // 濡傛灉鏄弗閲嶉敊璇紝璁板綍浣嗕笉闃绘搴旂敤閫€鍑?            if (e.IsTerminating)
             {
-                // 记录日志供下次启动分析
-            }
+                // 璁板綍鏃ュ織渚涗笅娆″惎鍔ㄥ垎鏋?            }
         };
 
-        // 捕获 UI 线程异常
+        // 鎹曡幏 UI 绾跨▼寮傚父
         this.DispatcherUnhandledException += (sender, e) =>
         {
             LogCrash(e.Exception, "DispatcherUnhandledException");
 
-            // 尝试恢复：不让应用崩溃
-            e.Handled = true;
+            // 灏濊瘯鎭㈠锛氫笉璁╁簲鐢ㄥ穿婧?            e.Handled = true;
 
-            // 尝试恢复 UI 状态
-            try
+            // 灏濊瘯鎭㈠ UI 鐘舵€?            try
             {
-                // 如果主窗口存在，尝试重新显示
+                // 濡傛灉涓荤獥鍙ｅ瓨鍦紝灏濊瘯閲嶆柊鏄剧ず
                 if (_mainWindow != null && !_mainWindow.IsVisible)
                 {
                     _mainWindow.Show();
@@ -231,11 +207,11 @@ public partial class App : Application
             catch { }
         };
 
-        // Task 异常（未观察的）
+        // Task 寮傚父锛堟湭瑙傚療鐨勶級
         TaskScheduler.UnobservedTaskException += (sender, e) =>
         {
             LogCrash(e.Exception, "UnobservedTaskException");
-            e.SetObserved(); // 阻止进程终止
+            e.SetObserved(); // 闃绘杩涚▼缁堟
         };
     }
 
@@ -260,30 +236,27 @@ public partial class App : Application
         }
         catch
         {
-            // 日志写入失败，静默忽略
-        }
+            // 鏃ュ織鍐欏叆澶辫触锛岄潤榛樺拷鐣?        }
     }
 
     #endregion
 
-    #region 系统主题检测
-
+    #region 绯荤粺涓婚妫€娴?
     private void SetupThemeWatcher()
     {
         SystemEvents.UserPreferenceChanged += (_, e) =>
         {
             if (e.Category == UserPreferenceCategory.General)
             {
-                // 系统主题可能已变化，通知灵动岛
-                _bus?.Publish(new IslandEvent(
-                    "system", "主题变更",
+                // 绯荤粺涓婚鍙兘宸插彉鍖栵紝閫氱煡鐏靛姩宀?                _bus?.Publish(new IslandEvent(
+                    "system", "涓婚鍙樻洿",
                     GetSystemTheme(), "info"));
             }
         };
     }
 
     /// <summary>
-    /// 获取当前系统主题：Dark 或 Light
+    /// 鑾峰彇褰撳墠绯荤粺涓婚锛欴ark 鎴?Light
     /// </summary>
     public static string GetSystemTheme()
     {
@@ -299,7 +272,7 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// 获取系统主题对应的背景色
+    /// 鑾峰彇绯荤粺涓婚瀵瑰簲鐨勮儗鏅壊
     /// </summary>
     public static string GetThemeBackgroundColor()
     {
@@ -308,7 +281,7 @@ public partial class App : Application
 
     #endregion
 
-    #region 托盘图标
+    #region 鎵樼洏鍥炬爣
 
     private void SetupTrayIcon()
     {
@@ -320,9 +293,9 @@ public partial class App : Application
         };
 
         var menu = new ContextMenuStrip();
-        var settingsItem = new ToolStripMenuItem("设置");
+        var settingsItem = new ToolStripMenuItem("璁剧疆");
         settingsItem.Click += (_, _) => OpenSettings();
-        var exitItem = new ToolStripMenuItem("退出");
+        var exitItem = new ToolStripMenuItem("閫€鍑?);
         exitItem.Click += (_, _) => ExitApp();
 
         menu.Items.Add(settingsItem);
@@ -385,8 +358,7 @@ public partial class App : Application
             };
         }
 
-        // 重置透明度（淡出动画可能将其设为 0）
-        _settingsWindow.BeginAnimation(UIElement.OpacityProperty, null);
+        // 閲嶇疆閫忔槑搴︼紙娣″嚭鍔ㄧ敾鍙兘灏嗗叾璁句负 0锛?        _settingsWindow.BeginAnimation(UIElement.OpacityProperty, null);
         _settingsWindow.Opacity = 1;
         _settingsWindow.Show();
         _settingsWindow.Activate();
@@ -429,3 +401,4 @@ public partial class App : Application
         base.OnExit(e);
     }
 }
+

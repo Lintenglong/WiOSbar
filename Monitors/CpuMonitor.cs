@@ -1,17 +1,16 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows.Threading;
 
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// CPU 使用率监控
-/// </summary>
+/// CPU 浣跨敤鐜囩洃鎺?/// </summary>
 public sealed class CpuMonitor : ISystemMonitor
 {
     public string Id => "cpu";
     public string Name => "CPU";
-    public string Description => "处理器使用率监控";
-    public string Icon => ""; // Segoe MDL2 Processor
+    public string Description => "澶勭悊鍣ㄤ娇鐢ㄧ巼鐩戞帶";
+    public string Icon => "睽?; // Segoe MDL2 Processor
     public bool Enabled { get; set; } = true;
     public event Action<IslandEvent>? EventTriggered;
 
@@ -26,18 +25,17 @@ public sealed class CpuMonitor : ISystemMonitor
         if (_isRunning) return;
         _isRunning = true;
 
-        // 延迟初始化 PerformanceCounter（首次创建需要 ~1 秒）
+        // 寤惰繜鍒濆鍖?PerformanceCounter锛堥娆″垱寤洪渶瑕?~1 绉掞級
         if (!_counterInitialized)
         {
             try
             {
                 _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-                _cpuCounter.NextValue(); // 首次调用返回 0，需要预热
-                _counterInitialized = true;
+                _cpuCounter.NextValue(); // 棣栨璋冪敤杩斿洖 0锛岄渶瑕侀鐑?                _counterInitialized = true;
             }
             catch
             {
-                // PerformanceCounter 不可用（如某些精简系统），静默降级
+                // PerformanceCounter 涓嶅彲鐢紙濡傛煇浜涚簿绠€绯荤粺锛夛紝闈欓粯闄嶇骇
                 Enabled = false;
                 return;
             }
@@ -47,8 +45,7 @@ public sealed class CpuMonitor : ISystemMonitor
         _timer.Tick += (_, _) => CheckCpu();
         _timer.Start();
 
-        // 首次检查延迟 1 秒（等待 PerformanceCounter 预热）
-        _ = new DispatcherTimer
+        // 棣栨妫€鏌ュ欢杩?1 绉掞紙绛夊緟 PerformanceCounter 棰勭儹锛?        _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
         }.Apply(t =>
@@ -58,8 +55,7 @@ public sealed class CpuMonitor : ISystemMonitor
                 t.Stop();
                 CheckCpu();
             };
-            t.Start();
-        });
+            _timer.Start();
     }
 
     public void Stop()
@@ -78,11 +74,10 @@ public sealed class CpuMonitor : ISystemMonitor
         {
             var percent = _cpuCounter.NextValue();
 
-            // 忽略异常值
-            if (percent < 0 || percent > 100)
+            // 蹇界暐寮傚父鍊?            if (percent < 0 || percent > 100)
                 return;
 
-            // 仅在变化超过 5% 或超过阈值时触发
+            // 浠呭湪鍙樺寲瓒呰繃 5% 鎴栬秴杩囬槇鍊兼椂瑙﹀彂
             var shouldTrigger = Math.Abs(percent - _lastPercent) > 5 ||
                                (percent > 80 && _lastPercent <= 80) ||
                                (percent > 90 && _lastPercent <= 90);
@@ -97,20 +92,20 @@ public sealed class CpuMonitor : ISystemMonitor
                 if (percent >= 90)
                 {
                     iconKind = "cpu_high";
-                    title = $"CPU 占用 {percent:F0}%";
-                    content = "系统负载较高";
+                    title = $"CPU 鍗犵敤 {percent:F0}%";
+                    content = "绯荤粺璐熻浇杈冮珮";
                 }
                 else if (percent >= 70)
                 {
                     iconKind = "cpu";
-                    title = $"CPU 占用 {percent:F0}%";
-                    content = "系统繁忙";
+                    title = $"CPU 鍗犵敤 {percent:F0}%";
+                    content = "绯荤粺绻佸繖";
                 }
                 else
                 {
                     iconKind = "cpu";
                     title = $"CPU {percent:F0}%";
-                    content = "运行正常";
+                    content = "杩愯姝ｅ父";
                 }
 
                 EventTriggered?.Invoke(new IslandEvent(
@@ -122,7 +117,7 @@ public sealed class CpuMonitor : ISystemMonitor
         }
         catch
         {
-            // 静默失败
+            // 闈欓粯澶辫触
         }
     }
 
@@ -132,3 +127,4 @@ public sealed class CpuMonitor : ISystemMonitor
         _cpuCounter?.Dispose();
     }
 }
+

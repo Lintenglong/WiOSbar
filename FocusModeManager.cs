@@ -1,11 +1,10 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
 namespace FluidBar;
 
 /// <summary>
-/// 专注/游戏模式管理器 - 自动隐藏灵动岛
-/// </summary>
+/// 涓撴敞/娓告垙妯″紡绠＄悊鍣?- 鑷姩闅愯棌鐏靛姩宀?/// </summary>
 public sealed class FocusModeManager
 {
     private readonly FluidBarSettings _settings;
@@ -35,8 +34,7 @@ public sealed class FocusModeManager
     }
 
     /// <summary>
-    /// 启动专注模式检测
-    /// </summary>
+    /// 鍚姩涓撴敞妯″紡妫€娴?    /// </summary>
     public void Start(Action<bool> onFocusModeChanged)
     {
         _onFocusModeChanged = onFocusModeChanged;
@@ -44,8 +42,7 @@ public sealed class FocusModeManager
     }
 
     /// <summary>
-    /// 停止检测
-    /// </summary>
+    /// 鍋滄妫€娴?    /// </summary>
     public void Stop()
     {
         _checkTimer.Stop();
@@ -64,37 +61,32 @@ public sealed class FocusModeManager
         }
         catch
         {
-            // 静默失败
+            // 闈欓粯澶辫触
         }
     }
 
     /// <summary>
-    /// 判断当前是否应该隐藏灵动岛
-    /// </summary>
+    /// 鍒ゆ柇褰撳墠鏄惁搴旇闅愯棌鐏靛姩宀?    /// </summary>
     private bool ShouldHideIsland()
     {
-        // 1. 检查全屏应用
-        if (IsFullscreenApplication())
+        // 1. 妫€鏌ュ叏灞忓簲鐢?        if (IsFullscreenApplication())
             return true;
 
-        // 2. 检查游戏进程
-        if (IsGameProcess())
+        // 2. 妫€鏌ユ父鎴忚繘绋?        if (IsGameProcess())
             return true;
 
-        // 3. 检查视频播放（浏览器全屏）
+        // 3. 妫€鏌ヨ棰戞挱鏀撅紙娴忚鍣ㄥ叏灞忥級
         if (IsVideoPlayback())
             return true;
 
-        // 4. 检查专注模式（Windows 专注助手）
-        if (IsWindowsFocusAssistEnabled())
+        // 4. 妫€鏌ヤ笓娉ㄦā寮忥紙Windows 涓撴敞鍔╂墜锛?        if (IsWindowsFocusAssistEnabled())
             return true;
 
         return false;
     }
 
     /// <summary>
-    /// 检测全屏应用
-    /// </summary>
+    /// 妫€娴嬪叏灞忓簲鐢?    /// </summary>
     private static bool IsFullscreenApplication()
     {
         try
@@ -103,16 +95,15 @@ public sealed class FocusModeManager
             if (hwnd == IntPtr.Zero)
                 return false;
 
-            // 获取窗口矩形
+            // 鑾峰彇绐楀彛鐭╁舰
             GetWindowRect(hwnd, out var rect);
             var screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
             var screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
 
-            // 如果窗口尺寸接近或等于屏幕尺寸，认为是全屏
-            var windowWidth = rect.Right - rect.Left;
+            // 濡傛灉绐楀彛灏哄鎺ヨ繎鎴栫瓑浜庡睆骞曞昂瀵革紝璁や负鏄叏灞?            var windowWidth = rect.Right - rect.Left;
             var windowHeight = rect.Bottom - rect.Top;
 
-            // 允许 5% 误差
+            // 鍏佽 5% 璇樊
             var widthRatio = Math.Abs(windowWidth - screenWidth) / screenWidth;
             var heightRatio = Math.Abs(windowHeight - screenHeight) / screenHeight;
 
@@ -136,8 +127,7 @@ public sealed class FocusModeManager
     }
 
     /// <summary>
-    /// 检测游戏进程
-    /// </summary>
+    /// 妫€娴嬫父鎴忚繘绋?    /// </summary>
     private static bool IsGameProcess()
     {
         try
@@ -150,8 +140,7 @@ public sealed class FocusModeManager
             var process = Process.GetProcessById((int)processId);
             var processName = process.ProcessName.ToLowerInvariant();
 
-            // 常见游戏进程关键词
-            var gameKeywords = new[]
+            // 甯歌娓告垙杩涚▼鍏抽敭璇?            var gameKeywords = new[]
             {
                 "game", "steam", "origin", "epic", "battle", "league", "dota",
                 "wow", "minecraft", "fortnite", "apex", "valorant", "csgo",
@@ -167,7 +156,7 @@ public sealed class FocusModeManager
     }
 
     /// <summary>
-    /// 检测视频播放（浏览器全屏模式）
+    /// 妫€娴嬭棰戞挱鏀撅紙娴忚鍣ㄥ叏灞忔ā寮忥級
     /// </summary>
     private static bool IsVideoPlayback()
     {
@@ -181,8 +170,7 @@ public sealed class FocusModeManager
             GetClassName(hwnd, className, className.Capacity);
             var classNameStr = className.ToString().ToLowerInvariant();
 
-            // 浏览器全屏通常使用特定窗口类
-            return classNameStr.Contains("chrome") ||
+            // 娴忚鍣ㄥ叏灞忛€氬父浣跨敤鐗瑰畾绐楀彛绫?            return classNameStr.Contains("chrome") ||
                    classNameStr.Contains("firefox") ||
                    classNameStr.Contains("edge");
         }
@@ -193,14 +181,13 @@ public sealed class FocusModeManager
     }
 
     /// <summary>
-    /// 检测 Windows 专注助手
+    /// 妫€娴?Windows 涓撴敞鍔╂墜
     /// </summary>
     private static bool IsWindowsFocusAssistEnabled()
     {
         try
         {
-            // 读取注册表判断专注助手状态
-            using var key = Registry.CurrentUser.OpenSubKey(
+            // 璇诲彇娉ㄥ唽琛ㄥ垽鏂笓娉ㄥ姪鎵嬬姸鎬?            using var key = Registry.CurrentUser.OpenSubKey(
                 @"Software\Microsoft\Windows\CurrentVersion\QuietHours");
 
             if (key == null)
@@ -209,8 +196,7 @@ public sealed class FocusModeManager
             var value = key.GetValue("QuietHoursState");
             if (value is int state)
             {
-                // 1 = 优先级通知, 2 = 仅闹钟
-                return state > 0;
+                // 1 = 浼樺厛绾ч€氱煡, 2 = 浠呴椆閽?                return state > 0;
             }
 
             return false;
@@ -221,3 +207,5 @@ public sealed class FocusModeManager
         }
     }
 }
+
+
