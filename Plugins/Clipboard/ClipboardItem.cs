@@ -1,22 +1,19 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace FluidBar;
 
 /// <summary>
-/// 剪贴板项目 - 支持多种内容类型
+/// 鍓创鏉块」鐩?- 鏀寔澶氱鍐呭绫诲瀷
 /// </summary>
 public sealed class ClipboardItem
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public ClipboardContentType Type { get; set; } = ClipboardContentType.Text;
     public string? TextContent { get; set; }
-    public string? ImagePath { get; set; } // 临时保存的图片路径
-    public string? FilePath { get; set; } // 文件路径（如果是文件）
-    public string? SourceApp { get; set; }
+    public string? ImagePath { get; set; } // 涓存椂淇濆瓨鐨勫浘鐗囪矾寰?    public string? FilePath { get; set; } // 鏂囦欢璺緞锛堝鏋滄槸鏂囦欢锛?    public string? SourceApp { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.Now;
     public bool IsFavorite { get; set; }
-    public string? PreviewText { get; set; } // 预览文本（截断版）
-
+    public string? PreviewText { get; set; } // 棰勮鏂囨湰锛堟埅鏂増锛?
     [JsonIgnore]
     public bool HasImage => Type == ClipboardContentType.Image && !string.IsNullOrWhiteSpace(ImagePath);
 
@@ -24,7 +21,7 @@ public sealed class ClipboardItem
     public bool HasFile => Type == ClipboardContentType.File && !string.IsNullOrWhiteSpace(FilePath);
 
     /// <summary>
-    /// 创建文本类型的剪贴板项目
+    /// 鍒涘缓鏂囨湰绫诲瀷鐨勫壀璐存澘椤圭洰
     /// </summary>
     public static ClipboardItem CreateText(string text, string? sourceApp = null)
     {
@@ -39,7 +36,7 @@ public sealed class ClipboardItem
     }
 
     /// <summary>
-    /// 创建图片类型的剪贴板项目
+    /// 鍒涘缓鍥剧墖绫诲瀷鐨勫壀璐存澘椤圭洰
     /// </summary>
     public static ClipboardItem CreateImage(string imagePath, string? sourceApp = null)
     {
@@ -48,12 +45,12 @@ public sealed class ClipboardItem
             Type = ClipboardContentType.Image,
             ImagePath = imagePath,
             SourceApp = sourceApp,
-            PreviewText = "[图片]"
+            PreviewText = "[鍥剧墖]"
         };
     }
 
     /// <summary>
-    /// 创建文件类型的剪贴板项目
+    /// 鍒涘缓鏂囦欢绫诲瀷鐨勫壀璐存澘椤圭洰
     /// </summary>
     public static ClipboardItem CreateFile(string filePath, string? sourceApp = null)
     {
@@ -63,12 +60,12 @@ public sealed class ClipboardItem
             Type = ClipboardContentType.File,
             FilePath = filePath,
             SourceApp = sourceApp,
-            PreviewText = $"[文件] {fileName}"
+            PreviewText = $"[鏂囦欢] {fileName}"
         };
     }
 
     /// <summary>
-    /// 创建 URL 类型的剪贴板项目
+    /// 鍒涘缓 URL 绫诲瀷鐨勫壀璐存澘椤圭洰
     /// </summary>
     public static ClipboardItem CreateUrl(string url, string? sourceApp = null)
     {
@@ -83,8 +80,7 @@ public sealed class ClipboardItem
 }
 
 /// <summary>
-/// 剪贴板内容类型
-/// </summary>
+/// 鍓创鏉垮唴瀹圭被鍨?/// </summary>
 public enum ClipboardContentType
 {
     Text,
@@ -93,3 +89,4 @@ public enum ClipboardContentType
     Url,
     RichText
 }
+

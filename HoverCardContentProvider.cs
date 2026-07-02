@@ -15,7 +15,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.Orientation.Vertical,
+            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -27,7 +27,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.White,
+                Foreground = System.Windows.Media.Brushes.White,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 350
             });
@@ -39,7 +39,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 12,
-                Foreground = Brushes.LightGray,
+                Foreground = System.Windows.Media.Brushes.LightGray,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 350
@@ -51,7 +51,7 @@ public static class HoverCardContentProvider
         {
             var progressPanel = new StackPanel
             {
-                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Horizontal,
                 Margin = new Thickness(0, 12, 0, 0)
             };
 
@@ -84,7 +84,7 @@ public static class HoverCardContentProvider
             {
                 Text = "褰撳墠姝岃瘝",
                 FontSize = 10,
-                Foreground = Brushes.Gray,
+                Foreground = System.Windows.Media.Brushes.Gray,
                 Margin = new Thickness(0, 0, 0, 4)
             });
 
@@ -92,7 +92,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.LyricLine,
                 FontSize = 13,
-                Foreground = Brushes.White,
+                Foreground = System.Windows.Media.Brushes.White,
                 FontWeight = FontWeights.Medium,
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -104,7 +104,7 @@ public static class HoverCardContentProvider
                 {
                     Text = view.SecondaryLyricLine,
                     FontSize = 11,
-                    Foreground = Brushes.LightGray,
+                    Foreground = System.Windows.Media.Brushes.LightGray,
                     Margin = new Thickness(0, 4, 0, 0),
                     TextWrapping = TextWrapping.Wrap,
                     MaxWidth = 320
@@ -120,7 +120,7 @@ public static class HoverCardContentProvider
         {
             Text = "鎸変綇 Ctrl+Alt 闅愯棌鐏靛姩宀?,
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = System.Windows.Media.Brushes.Gray,
             Margin = new Thickness(0, 12, 0, 0),
             HorizontalAlignment = HorizontalAlignment.Center
         };
@@ -136,7 +136,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.Orientation.Vertical,
+            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -160,7 +160,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.White,
+                Foreground = System.Windows.Media.Brushes.White,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -174,7 +174,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 12,
-                Foreground = Brushes.LightGray,
+                Foreground = System.Windows.Media.Brushes.LightGray,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -194,7 +194,7 @@ public static class HoverCardContentProvider
         {
             Text = "鐐瑰嚮閫氱煡鍙揩閫熸搷浣?,
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = System.Windows.Media.Brushes.Gray,
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
@@ -209,7 +209,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.Orientation.Vertical,
+            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -220,7 +220,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White
+                Foreground = System.Windows.Media.Brushes.White
             });
         }
 
@@ -230,7 +230,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 13,
-                Foreground = Brushes.LightGray,
+                Foreground = System.Windows.Media.Brushes.LightGray,
                 Margin = new Thickness(0, 6, 0, 0)
             });
         }
@@ -254,7 +254,7 @@ public static class HoverCardContentProvider
                     {
                         Text = "璇︾粏鏁板€?,
                         FontSize = 10,
-                        Foreground = Brushes.Gray,
+                        Foreground = System.Windows.Media.Brushes.Gray,
                         Margin = new Thickness(0, 0, 0, 4)
                     },
                     new TextBlock
@@ -262,7 +262,7 @@ public static class HoverCardContentProvider
                         Text = $"{view.Payload.ProgressPercent.Value:F1}%",
                         FontSize = 20,
                         FontWeight = FontWeights.Bold,
-                        Foreground = Brushes.White
+                        Foreground = System.Windows.Media.Brushes.White
                     }
                 }
             };
@@ -275,7 +275,7 @@ public static class HoverCardContentProvider
         {
             Text = "馃挕 鍘嗗彶瓒嬪娍灏嗗湪涓嬩釜鐗堟湰鎻愪緵",
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = System.Windows.Media.Brushes.Gray,
             Margin = new Thickness(0, 12, 0, 0)
         };
         panel.Children.Add(trendHint);
@@ -290,7 +290,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.Orientation.Vertical,
+            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -311,7 +311,7 @@ public static class HoverCardContentProvider
                     ? view.Content.Substring(0, 200) + "..."
                     : view.Content,
                 FontSize = 12,
-                Foreground = Brushes.White,
+                Foreground = System.Windows.Media.Brushes.White,
                 TextWrapping = TextWrapping.Wrap
             };
 
@@ -324,7 +324,7 @@ public static class HoverCardContentProvider
         {
             Text = "馃挕 鍘嗗彶璁板綍鍔熻兘鍗冲皢鎺ㄥ嚭",
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = System.Windows.Media.Brushes.Gray,
             Margin = new Thickness(0, 12, 0, 0)
         };
         panel.Children.Add(historyHint);
@@ -349,4 +349,5 @@ public static class HoverCardContentProvider
         };
     }
 }
+
 
