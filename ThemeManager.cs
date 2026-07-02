@@ -241,7 +241,7 @@ public sealed class ThemeManager
         }
         catch { }
 
-        return Colors.Black;
+        return System.Windows.Media.Colors.Black;
     }
 }
 
@@ -271,5 +271,6 @@ public sealed class SavedThemeConfig
     public string? CustomRimColor { get; set; }
     public string? CustomFontFamily { get; set; }
 }
+
 
 
