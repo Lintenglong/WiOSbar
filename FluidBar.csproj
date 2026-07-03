@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon />
-    <AssemblyName>FluidBar</AssemblyName>
+    <AssemblyName>WiOSbar</AssemblyName>
     <RootNamespace>FluidBar</RootNamespace>
     <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>

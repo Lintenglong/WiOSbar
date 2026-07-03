@@ -1,12 +1,12 @@
-# 🌊 FluidBar
+# 🌊 WiOSbar
 
 > Windows 上的灵动岛体验 — 将 macOS 动态岛风格的通知和信息显示带到 Windows 桌面
 
-[![Build Status](https://github.com/Doulor/FluidBar/actions/workflows/build.yml/badge.svg)](https://github.com/Doulor/FluidBar/actions)
+[![Build Status](https://github.com/Lintenglong/WiOSbar/actions/workflows/build.yml/badge.svg)](https://github.com/Lintenglong/WiOSbar/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 
-FluidBar 是一个轻量级的 Windows 桌面应用，使用 WPF 构建，在屏幕顶部以优雅的药丸形状（Pill）浮窗实时展示系统状态、媒体播放、剪贴板内容和应用通知。它的设计灵感来源于 iOS 的 Dynamic Island，通过玻璃拟态（Glassmorphism）、弹簧动画和渐变光效，为 Windows 用户带来精致的交互体验。
+WiOSbar 是一个轻量级的 Windows 桌面应用，使用 WPF 构建，在屏幕顶部以优雅的药丸形状（Pill）浮窗实时展示系统状态、媒体播放、剪贴板内容和应用通知。它的设计灵感来源于 iOS 的 Dynamic Island，通过玻璃拟态（Glassmorphism）、弹簧动画和渐变光效，为 Windows 用户带来精致的交互体验。
 
 ---
 
@@ -62,12 +62,12 @@ FluidBar 是一个轻量级的 Windows 桌面应用，使用 WPF 构建，在屏
 
 ### 下载预编译版本
 
-从 [Releases](https://github.com/Doulor/FluidBar/releases) 页面下载最新版本：
+从 [Releases](https://github.com/Lintenglong/WiOSbar/releases) 页面下载最新版本：
 
 | 版本 | 文件大小 | 适用场景 |
 |------|----------|----------|
-| **FluidBar-Standard** | ~5-10 MB | 已安装 .NET 10 的用户 |
-| **FluidBar-Portable** | ~100-150 MB | 无需安装，直接运行 |
+| **WiOSbar-Standard** | ~5-10 MB | 已安装 .NET 10 的用户 |
+| **WiOSbar-Portable** | ~100-150 MB | 无需安装，直接运行 |
 
 ### 从源码构建
 
@@ -77,17 +77,11 @@ FluidBar 是一个轻量级的 Windows 桌面应用，使用 WPF 构建，在屏
 
 #### 编译步骤
 
-**方法一：使用编译脚本（推荐）**
 ```powershell
 # 克隆仓库
-git clone https://github.com/Doulor/FluidBar.git
-cd FluidBar
+git clone https://github.com/Lintenglong/WiOSbar.git
+cd WiOSbar
 
-# 双击运行 BUILD.bat（自动编译）
-```
-
-**方法二：命令行编译**
-```powershell
 # 标准版本（需安装 .NET 10）
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 
@@ -97,7 +91,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 编译后的 EXE 文件位于：
 ```
-bin\Release\net10.0-windows10.0.19041.0\win-x64\publish\FluidBar.exe
+bin\Release\net10.0-windows10.0.19041.0\win-x64\publish\WiOSbar.exe
 ```
 
 ---
@@ -114,7 +108,7 @@ bin\Release\net10.0-windows10.0.19041.0\win-x64\publish\FluidBar.exe
   - `Ctrl+Alt+S` - 打开设置
 
 ### 配置天气（可选）
-创建配置文件：`%AppData%\FluidBar\weather.json`
+创建配置文件：`%AppData%\WiOSbar\weather.json`
 ```json
 {
   "Provider": "openweathermap",
@@ -131,7 +125,7 @@ bin\Release\net10.0-windows10.0.19041.0\win-x64\publish\FluidBar.exe
 在设置中开启，或运行：
 ```powershell
 # 注册表方式
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "FluidBar" /t REG_SZ /d "\"C:\Path\To\FluidBar.exe\"" /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "WiOSbar" /t REG_SZ /d "\"C:\Path\To\WiOSbar.exe\"" /f
 ```
 
 ---
@@ -139,7 +133,7 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "FluidBar" /t RE
 ## 🏗️ 架构概览
 
 ```
-FluidBar/
+WiOSbar/
 ├── App.xaml/cs              # 应用入口 + 崩溃恢复
 ├── MainWindow.xaml/cs       # 灵动岛主窗口 + 事件处理
 ├── SettingsWindow.xaml/cs   # 设置界面（4 标签页）
@@ -211,9 +205,9 @@ FluidBar/
 
 ## 📞 支持
 
-- **项目主页**：https://github.com/Doulor/FluidBar
-- **问题反馈**：https://github.com/Doulor/FluidBar/issues
-- **崩溃日志**：`%AppData%\FluidBar\logs\`
+- **项目主页**：https://github.com/Lintenglong/WiOSbar
+- **问题反馈**：https://github.com/Lintenglong/WiOSbar/issues
+- **崩溃日志**：`%AppData%\WiOSbar\logs\`
 
 ---
 
@@ -222,5 +216,5 @@ FluidBar/
 </p>
 
 <p align="center">
-  <a href="https://github.com/Doulor/FluidBar/stargazers">⭐ Star us on GitHub</a>
+  <a href="https://github.com/Lintenglong/WiOSbar/stargazers">⭐ Star us on GitHub</a>
 </p>
