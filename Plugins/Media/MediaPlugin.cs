@@ -43,7 +43,7 @@ public sealed class MediaPlugin : IIslandPlugin
     private string? _currentTrackKey;
     private bool _bgEnrichmentPending;
     private int _missedSnapshotPolls;
-    private const int MissedPollsBeforeStopped = 3;
+    private const int MissedPollsBeforeStopped = 20;
 
     // Track lyric changes separately (lyrics excluded from main signature to avoid island jump)
     private string _lastLyricSignature = string.Empty;
@@ -205,8 +205,6 @@ public sealed class MediaPlugin : IIslandPlugin
                 return;
             }
 
-            _missedSnapshotPolls = 0;
-
             // Track active provider
             _lastFromGsm = gsmSnapshot is not null || (snapshot.PositionTicks > 0 && fallbackSnapshot is null);
 
@@ -215,14 +213,16 @@ public sealed class MediaPlugin : IIslandPlugin
                 if (gsmSnapshot is not null)
                     _suppressFallbackUntilGsmPlaying = true;
 
-                // Send stopped event so MainWindow restarts collapse timer
-                if (!string.IsNullOrEmpty(_lastSignature))
+                if (!string.IsNullOrEmpty(_lastSignature) && ++_missedSnapshotPolls >= MissedPollsBeforeStopped)
                 {
                     _lastSignature = string.Empty;
+                    _lastLyricSignature = string.Empty;
                     EventTriggered?.Invoke(MediaIslandEventFactory.CreateStopped());
                 }
                 return;
             }
+
+            _missedSnapshotPolls = 0;
 
             // Enrich music apps with Kugou lyric and artwork metadata.
             // For new tracks: fire event immediately (no lyrics), then enrich async.

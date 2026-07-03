@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _waveTimer;
     private readonly DispatcherTimer _holdToHideTimer;
     private readonly DispatcherTimer _stackCleanupTimer;
+    private readonly DispatcherTimer _hoverLeaveTimer;
     private readonly SpringValue _hoverWidthSpring = new();
     private readonly SpringValue _hoverHeightSpring = new();
     private HoverCardMotionPlan? _hoverMotionPlan;
@@ -191,6 +192,14 @@ public partial class MainWindow : Window
         _stackCleanupTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _stackCleanupTimer.Tick += StackCleanupTimer_Tick;
 
+        _hoverLeaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(220) };
+        _hoverLeaveTimer.Tick += (_, _) =>
+        {
+            _hoverLeaveTimer.Stop();
+            if (!IsMouseOver)
+                HideHoverCard();
+        };
+
         // 提前绑定事件，避免 StartAll 时 Window_Loaded 尚未触发的竞态
         _bus.EventTriggered += OnEventTriggered;
     }
@@ -281,12 +290,14 @@ public partial class MainWindow : Window
 
     private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
+        _hoverLeaveTimer.Stop();
         ShowHoverCard();
     }
 
     private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        HideHoverCard();
+        _hoverLeaveTimer.Stop();
+        _hoverLeaveTimer.Start();
     }
 
     public void OnSettingsPanelOpened()
@@ -1064,6 +1075,7 @@ public partial class MainWindow : Window
 
     private void ShowHoverCard()
     {
+        _hoverLeaveTimer.Stop();
         if (_isHoverCard || !CanShowHoverCard() || _currentView == null)
             return;
 
@@ -1110,6 +1122,8 @@ public partial class MainWindow : Window
 
     private void HideHoverCard()
     {
+        if (IsMouseOver)
+            return;
         if (!_isHoverCard) return;
         _isHoverCard = false;
         _activeMediaControlSourceName = null;
@@ -1153,12 +1167,14 @@ public partial class MainWindow : Window
             collapseTimer.Stop();
             if (!_isHoverCard)
                 HoverCardGrid.Visibility = Visibility.Collapsed;
-        if (_currentView?.Kind == IslandViewKind.ScrollingText && ScrollCanvas.Visibility == Visibility.Visible)
-        {
-            var width = ScrollCanvas.ActualWidth > 0 ? ScrollCanvas.ActualWidth : ScrollCanvas.Width;
-            StartScrolling(width);
-        }
-        ResetCollapseTimer();
+
+            if (_currentView?.Kind == IslandViewKind.ScrollingText && ScrollCanvas.Visibility == Visibility.Visible)
+            {
+                var width = ScrollCanvas.ActualWidth > 0 ? ScrollCanvas.ActualWidth : ScrollCanvas.Width;
+                StartScrolling(width);
+            }
+
+            ResetCollapseTimer();
         };
         collapseTimer.Start();
     }
@@ -2088,7 +2104,7 @@ public partial class MainWindow : Window
         }
 
         // 媒体播放中不自动隐藏
-        if (_currentView?.Kind == IslandViewKind.Media && (_currentView.ShowsAudioWave || _mediaActive))
+        if (_currentView?.Kind == IslandViewKind.Media)
         {
             _collapseTimer.Stop();
             return;
