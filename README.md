@@ -8,6 +8,8 @@
 
 WiOSbar 是一个轻量级的 Windows 桌面应用，使用 WPF 构建，在屏幕顶部以优雅的药丸形状（Pill）浮窗实时展示系统状态、媒体播放、剪贴板内容和应用通知。它的设计灵感来源于 iOS 的 Dynamic Island，通过玻璃拟态（Glassmorphism）、弹簧动画和渐变光效，为 Windows 用户带来精致的交互体验。
 
+本项目基于 [Doulor/FluidBar](https://github.com/Doulor/FluidBar) 修改和维护。
+
 ---
 
 ## ✨ 功能特性
@@ -197,6 +199,7 @@ WiOSbar/
 
 ## 🙏 致谢
 
+- 上游项目：[Doulor/FluidBar](https://github.com/Doulor/FluidBar)
 - 灵感来源：[iOS Dynamic Island](https://developer.apple.com/design/human-interface-guidelines/dynamic-island)
 - 歌词 API：酷狗、网易云、QQ音乐、Spotify、lyrics.ovh
 - 天气 API：OpenWeatherMap、和风天气
