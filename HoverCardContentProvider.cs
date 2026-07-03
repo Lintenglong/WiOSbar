@@ -1,25 +1,26 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace FluidBar;
 
 /// <summary>
-/// 鎮仠鍗＄墖鍐呭鎻愪緵鑰?- 涓轰笉鍚屼簨浠剁被鍨嬫彁渚涗赴瀵岀殑鎮仠鍐呭
+/// 悬停卡片内容提供者 - 为不同事件类型提供丰富的悬停内容
 /// </summary>
 public static class HoverCardContentProvider
 {
     /// <summary>
-    /// 涓哄獟浣撲簨浠跺垱寤哄寮烘偓鍋滃唴瀹?    /// </summary>
+    /// 为媒体事件创建增强悬停内容
+    /// </summary>
     public static FrameworkElement CreateMediaHoverContent(IslandViewPresentation view, FluidBarSettings settings)
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
+            Orientation = Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
-        // 姝屾洸淇℃伅
+        // 歌曲信息
         if (!string.IsNullOrWhiteSpace(view.Title))
         {
             panel.Children.Add(new TextBlock
@@ -27,7 +28,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = System.Windows.Media.Brushes.White,
+                Foreground = Brushes.White,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 350
             });
@@ -39,19 +40,19 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 12,
-                Foreground = System.Windows.Media.Brushes.LightGray,
+                Foreground = Brushes.LightGray,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 350
             });
         }
 
-        // 杩涘害鏉★紙濡傛灉鏈夛級
+        // 进度条（如果有）
         if (view.Payload?.ProgressPercent.HasValue == true)
         {
             var progressPanel = new StackPanel
             {
-                Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Horizontal,
+                Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 12, 0, 0)
             };
 
@@ -68,7 +69,8 @@ public static class HoverCardContentProvider
             panel.Children.Add(progressPanel);
         }
 
-        // 姝岃瘝锛堝鏋滄湁锛?        if (!string.IsNullOrWhiteSpace(view.LyricLine))
+        // 歌词（如果有）
+        if (!string.IsNullOrWhiteSpace(view.LyricLine))
         {
             var lyricBorder = new Border
             {
@@ -82,9 +84,9 @@ public static class HoverCardContentProvider
 
             lyricStack.Children.Add(new TextBlock
             {
-                Text = "褰撳墠姝岃瘝",
+                Text = "当前歌词",
                 FontSize = 10,
-                Foreground = System.Windows.Media.Brushes.Gray,
+                Foreground = Brushes.Gray,
                 Margin = new Thickness(0, 0, 0, 4)
             });
 
@@ -92,7 +94,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.LyricLine,
                 FontSize = 13,
-                Foreground = System.Windows.Media.Brushes.White,
+                Foreground = Brushes.White,
                 FontWeight = FontWeights.Medium,
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -104,7 +106,7 @@ public static class HoverCardContentProvider
                 {
                     Text = view.SecondaryLyricLine,
                     FontSize = 11,
-                    Foreground = System.Windows.Media.Brushes.LightGray,
+                    Foreground = Brushes.LightGray,
                     Margin = new Thickness(0, 4, 0, 0),
                     TextWrapping = TextWrapping.Wrap,
                     MaxWidth = 320
@@ -115,12 +117,12 @@ public static class HoverCardContentProvider
             panel.Children.Add(lyricBorder);
         }
 
-        // 鎺у埗鎻愮ず
+        // 控制提示
         var hintText = new TextBlock
         {
-            Text = "鎸変綇 Ctrl+Alt 闅愯棌鐏靛姩宀?,
+            Text = "按住 Ctrl+Alt 隐藏灵动岛",
             FontSize = 10,
-            Foreground = System.Windows.Media.Brushes.Gray,
+            Foreground = Brushes.Gray,
             Margin = new Thickness(0, 12, 0, 0),
             HorizontalAlignment = HorizontalAlignment.Center
         };
@@ -130,17 +132,17 @@ public static class HoverCardContentProvider
     }
 
     /// <summary>
-    /// 涓洪€氱煡浜嬩欢鍒涘缓澧炲己鎮仠鍐呭
+    /// 为通知事件创建增强悬停内容
     /// </summary>
     public static FrameworkElement CreateNotificationHoverContent(IslandViewPresentation view)
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
+            Orientation = Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
-        // 搴旂敤鍚嶇О
+        // 应用名称
         if (!string.IsNullOrWhiteSpace(view.SourceName))
         {
             panel.Children.Add(new TextBlock
@@ -152,7 +154,7 @@ public static class HoverCardContentProvider
             });
         }
 
-        // 鏍囬
+        // 标题
         if (!string.IsNullOrWhiteSpace(view.Title))
         {
             panel.Children.Add(new TextBlock
@@ -160,28 +162,28 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = System.Windows.Media.Brushes.White,
+                Foreground = Brushes.White,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
             });
         }
 
-        // 鍐呭
+        // 内容
         if (!string.IsNullOrWhiteSpace(view.Content))
         {
             panel.Children.Add(new TextBlock
             {
                 Text = view.Content,
                 FontSize = 12,
-                Foreground = System.Windows.Media.Brushes.LightGray,
+                Foreground = Brushes.LightGray,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
             });
         }
 
-        // 鎿嶄綔鎻愮ず
+        // 操作提示
         var actionHint = new Border
         {
             Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
@@ -192,9 +194,9 @@ public static class HoverCardContentProvider
 
         actionHint.Child = new TextBlock
         {
-            Text = "鐐瑰嚮閫氱煡鍙揩閫熸搷浣?,
+            Text = "点击通知可快速操作",
             FontSize = 10,
-            Foreground = System.Windows.Media.Brushes.Gray,
+            Foreground = Brushes.Gray,
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
@@ -204,38 +206,41 @@ public static class HoverCardContentProvider
     }
 
     /// <summary>
-    /// 涓虹郴缁熺姸鎬佷簨浠跺垱寤哄寮烘偓鍋滃唴瀹?    /// </summary>
+    /// 为系统状态事件创建增强悬停内容
+    /// </summary>
     public static FrameworkElement CreateSystemStatusHoverContent(IslandViewPresentation view)
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
+            Orientation = Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
-        // 鐘舵€佹爣棰?        if (!string.IsNullOrWhiteSpace(view.Title))
+        // 状态标题
+        if (!string.IsNullOrWhiteSpace(view.Title))
         {
             panel.Children.Add(new TextBlock
             {
                 Text = view.Title,
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = System.Windows.Media.Brushes.White
+                Foreground = Brushes.White
             });
         }
 
-        // 鐘舵€佸唴瀹?        if (!string.IsNullOrWhiteSpace(view.Content))
+        // 状态内容
+        if (!string.IsNullOrWhiteSpace(view.Content))
         {
             panel.Children.Add(new TextBlock
             {
                 Text = view.Content,
                 FontSize = 13,
-                Foreground = System.Windows.Media.Brushes.LightGray,
+                Foreground = Brushes.LightGray,
                 Margin = new Thickness(0, 6, 0, 0)
             });
         }
 
-        // 璇︾粏鏁板€硷紙濡傛灉鏈夛級
+        // 详细数值（如果有）
         if (view.Payload?.ProgressPercent.HasValue == true)
         {
             var detailPanel = new Border
@@ -252,9 +257,9 @@ public static class HoverCardContentProvider
                 {
                     new TextBlock
                     {
-                        Text = "璇︾粏鏁板€?,
+                        Text = "详细数值",
                         FontSize = 10,
-                        Foreground = System.Windows.Media.Brushes.Gray,
+                        Foreground = Brushes.Gray,
                         Margin = new Thickness(0, 0, 0, 4)
                     },
                     new TextBlock
@@ -262,7 +267,7 @@ public static class HoverCardContentProvider
                         Text = $"{view.Payload.ProgressPercent.Value:F1}%",
                         FontSize = 20,
                         FontWeight = FontWeights.Bold,
-                        Foreground = System.Windows.Media.Brushes.White
+                        Foreground = Brushes.White
                     }
                 }
             };
@@ -270,12 +275,12 @@ public static class HoverCardContentProvider
             panel.Children.Add(detailPanel);
         }
 
-        // 鍘嗗彶瓒嬪娍鎻愮ず
+        // 历史趋势提示
         var trendHint = new TextBlock
         {
-            Text = "馃挕 鍘嗗彶瓒嬪娍灏嗗湪涓嬩釜鐗堟湰鎻愪緵",
+            Text = "💡 历史趋势将在下个版本提供",
             FontSize = 10,
-            Foreground = System.Windows.Media.Brushes.Gray,
+            Foreground = Brushes.Gray,
             Margin = new Thickness(0, 12, 0, 0)
         };
         panel.Children.Add(trendHint);
@@ -284,17 +289,17 @@ public static class HoverCardContentProvider
     }
 
     /// <summary>
-    /// 涓哄壀璐存澘浜嬩欢鍒涘缓澧炲己鎮仠鍐呭
+    /// 为剪贴板事件创建增强悬停内容
     /// </summary>
     public static FrameworkElement CreateClipboardHoverContent(IslandViewPresentation view, ClipboardPluginSettings? settings)
     {
         var panel = new StackPanel
         {
-            Orientation = System.Windows.Controls.System.Windows.Controls.Orientation.Vertical,
+            Orientation = Orientation.Vertical,
             Margin = new Thickness(16)
         };
 
-        // 鍐呭棰勮
+        // 内容预览
         if (!string.IsNullOrWhiteSpace(view.Content))
         {
             var previewBorder = new Border
@@ -311,7 +316,7 @@ public static class HoverCardContentProvider
                     ? view.Content.Substring(0, 200) + "..."
                     : view.Content,
                 FontSize = 12,
-                Foreground = System.Windows.Media.Brushes.White,
+                Foreground = Brushes.White,
                 TextWrapping = TextWrapping.Wrap
             };
 
@@ -319,12 +324,12 @@ public static class HoverCardContentProvider
             panel.Children.Add(previewBorder);
         }
 
-        // 鍘嗗彶鎻愮ず
+        // 历史提示
         var historyHint = new TextBlock
         {
-            Text = "馃挕 鍘嗗彶璁板綍鍔熻兘鍗冲皢鎺ㄥ嚭",
+            Text = "💡 历史记录功能即将推出",
             FontSize = 10,
-            Foreground = System.Windows.Media.Brushes.Gray,
+            Foreground = Brushes.Gray,
             Margin = new Thickness(0, 12, 0, 0)
         };
         panel.Children.Add(historyHint);
@@ -333,7 +338,8 @@ public static class HoverCardContentProvider
     }
 
     /// <summary>
-    /// 鏍规嵁浜嬩欢绫诲瀷鍒涘缓瀵瑰簲鐨勬偓鍋滃唴瀹?    /// </summary>
+    /// 根据事件类型创建对应的悬停内容
+    /// </summary>
     public static FrameworkElement? CreateHoverContent(
         IslandViewPresentation view,
         FluidBarSettings settings,
@@ -349,5 +355,3 @@ public static class HoverCardContentProvider
         };
     }
 }
-
-

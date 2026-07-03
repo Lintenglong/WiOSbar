@@ -1,17 +1,17 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Windows.Threading;
 
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// 鍐呭瓨鍗犵敤鐩戞帶
+/// 内存占用监控
 /// </summary>
 public sealed class MemoryMonitor : ISystemMonitor
 {
     public string Id => "memory";
-    public string Name => "鍐呭瓨";
-    public string Description => "鍐呭瓨浣跨敤鐜囩洃鎺?;
-    public string Icon => "瞍€"; // Segoe MDL2 Memory
+    public string Name => "内存";
+    public string Description => "内存使用率监控";
+    public string Icon => ""; // Segoe MDL2 Memory
     public bool Enabled { get; set; } = true;
     public event Action<IslandEvent>? EventTriggered;
 
@@ -45,7 +45,8 @@ public sealed class MemoryMonitor : ISystemMonitor
         _timer.Tick += (_, _) => CheckMemory();
         _timer.Start();
 
-        // 棣栨寤惰繜妫€鏌?        _ = new DispatcherTimer
+        // 首次延迟检查
+        _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
         }.Apply(t =>
@@ -55,7 +56,8 @@ public sealed class MemoryMonitor : ISystemMonitor
                 t.Stop();
                 CheckMemory();
             };
-            _timer.Start();
+            t.Start();
+        });
     }
 
     public void Stop()
@@ -77,7 +79,7 @@ public sealed class MemoryMonitor : ISystemMonitor
             if (percent < 0 || percent > 100)
                 return;
 
-            // 鍐呭瓨鍙樺寲闃堝€硷細3%锛岃鍛婇槇鍊硷細85%/95%
+            // 内存变化阈值：3%，警告阈值：85%/95%
             var shouldTrigger = Math.Abs(percent - _lastPercent) > 3 ||
                                (percent > 85 && _lastPercent <= 85) ||
                                (percent > 95 && _lastPercent <= 95);
@@ -91,20 +93,20 @@ public sealed class MemoryMonitor : ISystemMonitor
                 if (percent >= 95)
                 {
                     iconKind = "memory_high";
-                    title = $"鍐呭瓨鍗犵敤 {percent:F0}%";
-                    content = "鍐呭瓨涓嶈冻锛屽缓璁叧闂簲鐢?;
+                    title = $"内存占用 {percent:F0}%";
+                    content = "内存不足，建议关闭应用";
                 }
                 else if (percent >= 85)
                 {
                     iconKind = "memory";
-                    title = $"鍐呭瓨鍗犵敤 {percent:F0}%";
-                    content = "鍐呭瓨鍗犵敤杈冮珮";
+                    title = $"内存占用 {percent:F0}%";
+                    content = "内存占用较高";
                 }
                 else
                 {
                     iconKind = "memory";
-                    title = $"鍐呭瓨 {percent:F0}%";
-                    content = "杩愯姝ｅ父";
+                    title = $"内存 {percent:F0}%";
+                    content = "运行正常";
                 }
 
                 EventTriggered?.Invoke(new IslandEvent(
@@ -116,7 +118,7 @@ public sealed class MemoryMonitor : ISystemMonitor
         }
         catch
         {
-            // 闈欓粯澶辫触
+            // 静默失败
         }
     }
 
@@ -126,4 +128,3 @@ public sealed class MemoryMonitor : ISystemMonitor
         _memoryCounter?.Dispose();
     }
 }
-

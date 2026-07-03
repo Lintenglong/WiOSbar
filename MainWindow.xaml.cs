@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -77,7 +77,7 @@ public partial class MainWindow : Window
         BitmapImage Image,
         MediaColor Accent);
 
-    // Segoe MDL2 Assets 鍥炬爣鏄犲皠
+    // Segoe MDL2 Assets 图标映射
     private static readonly Dictionary<string, string> IconGlyphs = new()
     {
         ["clipboard"]     = "\uE16F",
@@ -100,7 +100,7 @@ public partial class MainWindow : Window
         ["info"]          = "\uE946",
     };
 
-    // 鍚勫姛鑳藉浘鏍囪儗鏅壊
+    // 各功能图标背景色
     private static readonly Dictionary<string, MediaColor> IconColors = new()
     {
         ["clipboard"]     = MediaColor.FromRgb(10, 132, 255),
@@ -171,7 +171,7 @@ public partial class MainWindow : Window
             _collapseTimer.Stop();
             if (!_settingsPanelOpen)
             {
-                // 濯掍綋鎾斁涓笉鍒囨崲鍒版椂閽燂紝淇濇寔褰撳墠鏄剧ず
+                // 媒体播放中不切换到时钟，保持当前显示
                 if (_settings.AlwaysVisible && !IsMediaPlaying())
                     ShowIdleClock();
                 else if (!_settings.AlwaysVisible && !IsMediaPlaying())
@@ -191,7 +191,8 @@ public partial class MainWindow : Window
         _stackCleanupTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _stackCleanupTimer.Tick += StackCleanupTimer_Tick;
 
-        // 鎻愬墠缁戝畾浜嬩欢锛岄伩鍏?StartAll 鏃?Window_Loaded 灏氭湭瑙﹀彂鐨勭珵鎬?        _bus.EventTriggered += OnEventTriggered;
+        // 提前绑定事件，避免 StartAll 时 Window_Loaded 尚未触发的竞态
+        _bus.EventTriggered += OnEventTriggered;
     }
 
     public void SetClipboardPluginSettings(ClipboardPluginSettings s)
@@ -237,21 +238,22 @@ public partial class MainWindow : Window
         CloseSnapshotWindows(immediate: true);
     }
 
-    #region 涓撴敞妯″紡鏀寔锛圥hase 5 鏂板锛?
+    #region 专注模式支持（Phase 5 新增）
+
     /// <summary>
-    /// 杩涘叆涓撴敞妯″紡鏃堕殣钘忕伒鍔ㄥ矝
+    /// 进入专注模式时隐藏灵动岛
     /// </summary>
     public void HideForFocusMode()
     {
         if (_settingsPanelOpen)
-            return; // 璁剧疆闈㈡澘鎵撳紑鏃朵笉闅愯棌
+            return; // 设置面板打开时不隐藏
 
-        _hiddenByHoldKey = true; // 澶嶇敤闅愯棌鏍囧織
+        _hiddenByHoldKey = true; // 复用隐藏标志
         Collapse();
     }
 
     /// <summary>
-    /// 閫€鍑轰笓娉ㄦā寮忓悗鎭㈠鏄剧ず
+    /// 退出专注模式后恢复显示
     /// </summary>
     public void ShowAfterFocusMode()
     {
@@ -296,7 +298,7 @@ public partial class MainWindow : Window
 
         Dispatcher.BeginInvoke(() =>
         {
-            // 濡傛灉娌″睍寮€锛屽垯灞曞紑锛堜繚鎸佺┖闂茬姸鎬佹樉绀猴級
+            // 如果没展开，则展开（保持空闲状态显示）
             if (!_isExpanded)
             {
                 if (_settings.AlwaysVisible)
@@ -380,7 +382,7 @@ public partial class MainWindow : Window
         Topmost = _settings.AlwaysOnTop;
         _collapseTimer.Interval = TimeSpan.FromMilliseconds(_settings.AutoHideDelayMs);
 
-        // 搴旂敤鐜粫寰厜妯″紡
+        // 应用环绕微光模式
         ApplyRimMode();
 
         if (_isExpanded && _lastEvent != null)
@@ -406,7 +408,8 @@ public partial class MainWindow : Window
             }
         }
 
-        // 璁剧疆闈㈡澘鎵撳紑鏃跺疄鏃舵洿鏂颁綅缃紙娓呴櫎鍔ㄧ敾鍚庣敤褰撳墠灏哄瀹氫綅锛?        if (_settingsPanelOpen)
+        // 设置面板打开时实时更新位置（清除动画后用当前尺寸定位）
+        if (_settingsPanelOpen)
         {
             if (!_isExpanded)
             {
@@ -417,7 +420,7 @@ public partial class MainWindow : Window
                 new DoubleAnimation(_settings.Opacity, TimeSpan.FromMilliseconds(150)));
         }
 
-        // AlwaysVisible 妯″紡鍒囨崲
+        // AlwaysVisible 模式切换
         if (_settings.AlwaysVisible && !_isExpanded)
         {
             Dispatcher.BeginInvoke(() => ShowIdleClock());
@@ -471,7 +474,7 @@ public partial class MainWindow : Window
         Height = ToWindowSize(_settings.CollapsedHeight);
     }
 
-    /// <summary>璁剧疆闈㈡澘鎵撳紑鏃剁敤褰撳墠瀹為檯灏哄瀹氫綅锛屾竻闄ゅ姩鐢诲悗鐩存帴璁惧€?/summary>
+    /// <summary>设置面板打开时用当前实际尺寸定位，清除动画后直接设值</summary>
     private void PositionAtCurrentSize()
     {
         var w = _isExpanded ? ToVisualSize(ActualWidth) : _settings.CollapsedWidth;
@@ -488,7 +491,7 @@ public partial class MainWindow : Window
         Top = y;
     }
 
-    /// <summary>娓呴櫎鎵€鏈変綅缃?灏哄涓婄殑鍔ㄧ敾鍗犵敤锛屽惁鍒欑洿鎺ヨ祴鍊间笉鐢熸晥</summary>
+    /// <summary>清除所有位置/尺寸上的动画占用，否则直接赋值不生效</summary>
     private void ClearPositionAnimations()
     {
         BeginAnimation(LeftProperty, null);
@@ -542,21 +545,23 @@ public partial class MainWindow : Window
     }
 
     // ===========================================================
-    // 浜嬩欢澶勭悊 - 姘歌繙澶勭悊浜嬩欢锛屼笉涓㈠純锛屼笉浣跨敤闃熷垪
+    // 事件处理 - 永远处理事件，不丢弃，不使用队列
     // ===========================================================
 
     private void OnEventTriggered(IslandEvent evt)
     {
-        // 浜嬩欢宸插湪 UI 绾跨▼涓婏紙鏉ヨ嚜 DispatcherTimer锛夛紝鐩存帴澶勭悊
+        // 事件已在 UI 线程上（来自 DispatcherTimer），直接处理
         ProcessEvent(evt);
     }
 
     private void ProcessEvent(IslandEvent evt)
     {
-        // 浜嬩欢鑱氬悎涓庨槻鎵撴壈绛栫暐锛圥hase 2 鏂板锛?        // 1. 妫€鏌ユ槸鍚﹀簲璇ユ姂鍒讹紙閲嶅浜嬩欢銆侀潤榛樻湡锛?        if (EventAggregationPolicy.ShouldSuppress(evt, _lastEvent))
+        // 事件聚合与防打扰策略（Phase 2 新增）
+        // 1. 检查是否应该抑制（重复事件、静默期）
+        if (EventAggregationPolicy.ShouldSuppress(evt, _lastEvent))
             return;
 
-        // 2. 灏濊瘯鑱氬悎鍚岀被浜嬩欢
+        // 2. 尝试聚合同类事件
         if (_lastEvent != null && EventAggregationPolicy.ShouldAggregate(_lastEvent, evt))
         {
             evt = EventAggregationPolicy.AggregateEvents(new[] { _lastEvent, evt });
@@ -566,7 +571,7 @@ public partial class MainWindow : Window
         if (_snapshotWindows.Count > 0)
             CloseSnapshotWindows(immediate: true);
 
-        // Lyric-only update: same source/title/artist, only lyrics changed 鈥?update text directly
+        // Lyric-only update: same source/title/artist, only lyrics changed — update text directly
         // without re-rendering the entire island (avoids "jump" and hover card disruption)
         if (evt.Source == "media" && _currentView is { Kind: IslandViewKind.Media } cur &&
             evt.Title == cur.Title && evt.Content == cur.Content && evt.Source == _currentSource)
@@ -592,7 +597,7 @@ public partial class MainWindow : Window
                 }
                 if (_isHoverCard && HoverLyricsCanvas.Visibility == Visibility.Visible)
                 {
-                    // Only update lyrics canvas 鈥?do NOT call ApplyHoverCardContent (it would re-render the card)
+                    // Only update lyrics canvas — do NOT call ApplyHoverCardContent (it would re-render the card)
                     UpdateHoverLyrics(newLyric, evt.Payload?.SecondaryLyricLine);
                 }
                 else
@@ -611,7 +616,8 @@ public partial class MainWindow : Window
             _settings,
             _clipboardPluginSettings?.MinFullDisplayChars ?? 20);
 
-        // 鏃堕挓鐩戞帶鍙湪甯搁┗/宸插睍寮€鏃舵洿鏂帮紝閬垮厤姣?10 绉掍富鍔ㄥ脊鍑恒€?        if (view.Kind == IslandViewKind.Clock && !_settings.AlwaysVisible && !_isExpanded)
+        // 时钟监控只在常驻/已展开时更新，避免每 10 秒主动弹出。
+        if (view.Kind == IslandViewKind.Clock && !_settings.AlwaysVisible && !_isExpanded)
             return;
 
         // Stopped/paused media: start collapse timer without overwriting _currentView
@@ -641,13 +647,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 鐙珛杩借釜濯掍綋鎾斁鐘舵€侊紝涓嶄緷璧?_currentView锛堜細琚叾浠栦簨浠惰鐩栵級
+        // 独立追踪媒体播放状态，不依赖 _currentView（会被其他事件覆盖）
         if (evt.Source == "media")
         {
             _mediaActive = view.Kind == IslandViewKind.Media && view.ShowsAudioWave;
         }
 
-        // 濯掍綋鎾斁涓紝闈炲獟浣撲簨浠朵笉瑕嗙洊涓绘樉绀恒€?        // 澶氬矝灞挎ā寮忎笅鍙叆鏍堝苟鍚屾蹇収绐楀彛锛屼笉鏇存柊涓诲矝鍐呭銆?        if (_mediaActive && evt.Source != "media")
+        // 媒体播放中，非媒体事件不覆盖主显示。
+        // 多岛屿模式下只入栈并同步快照窗口，不更新主岛内容。
+        if (_mediaActive && evt.Source != "media")
         {
             if (_settings.DisplayStrategy == IslandDisplayStrategy.Multiple)
             {
@@ -709,7 +717,7 @@ public partial class MainWindow : Window
                 break;
         }
 
-        // 鐜粫寰厜瑙﹀彂
+        // 环绕微光触发
         TriggerRimPulse(evt.Source);
 
         if (!_isExpanded)
@@ -731,7 +739,7 @@ public partial class MainWindow : Window
         else
         {
             MorphToView(view);
-            // 寰姩寮规€э細浠呯鏁ｄ簨浠惰Е鍙戯紙杩涘害绫婚珮棰戜簨浠惰烦杩囷級
+            // 微动弹性：仅离散事件触发（进度类高频事件跳过）
             if (view.Kind != IslandViewKind.Progress && ShouldEmphasizeSource(evt.Source))
                 NudgePill();
         }
@@ -742,7 +750,7 @@ public partial class MainWindow : Window
     {
         if (view.Kind == IslandViewKind.Clock || evt.Source == "clock")
         {
-            // 濯掍綋鎾斁涓笉娓呯悊宀涘笨鏍堬紙闃叉鏃堕挓浜嬩欢娓呮帀濯掍綋宀涳級
+            // 媒体播放中不清理岛屿栈（防止时钟事件清掉媒体岛）
             if (_mediaActive)
                 return;
             ClearIslandStack(animated: true);
@@ -1469,8 +1477,8 @@ public partial class MainWindow : Window
             if (card.Kind == IslandViewKind.Progress)
             {
                 HoverBodyText.Text = card.IconKind == "volume_mute"
-                    ? "褰撳墠杈撳嚭宸查潤闊?
-                    : $"{card.Title} 路 {card.ProgressPercent}%";
+                    ? "当前输出已静音"
+                    : $"{card.Title} · {card.ProgressPercent}%";
             }
             else
             {
@@ -1527,19 +1535,19 @@ public partial class MainWindow : Window
         HoverBodyText.MaxHeight = card.DetailLines * 20;
         HoverMetaText.Text = _currentSource switch
         {
-            "clipboard" => "澶嶅埗鍐呭璇︽儏",
-            "clock" => "绌洪棽鐘舵€?,
-            "volume" => "闊抽噺鎸囩ず",
-            "brightness" => "浜害鎸囩ず",
-            "battery" => "鐢垫睜鐘舵€?,
-            "network" => "缃戠粶鐘舵€?,
-            "usb" => "USB 璁惧",
-            "bluetooth" => "钃濈墮璁惧",
-            "lockkey" => "閿侀敭鐘舵€?,
-            "inputmethod" => "杈撳叆娉曠姸鎬?,
-            "media" => "濯掍綋鎾斁",
-            "agent-status" => "Agent 浠诲姟",
-            "notifications" => "绯荤粺閫氱煡",
+            "clipboard" => "复制内容详情",
+            "clock" => "空闲状态",
+            "volume" => "音量指示",
+            "brightness" => "亮度指示",
+            "battery" => "电池状态",
+            "network" => "网络状态",
+            "usb" => "USB 设备",
+            "bluetooth" => "蓝牙设备",
+            "lockkey" => "锁键状态",
+            "inputmethod" => "输入法状态",
+            "media" => "媒体播放",
+            "agent-status" => "Agent 任务",
+            "notifications" => "系统通知",
             _ => "FluidBar"
         };
     }
@@ -1548,42 +1556,42 @@ public partial class MainWindow : Window
     {
         return kind switch
         {
-            IslandViewKind.Progress => "杩涘害",
-            IslandViewKind.Status => "鐘舵€?,
-            IslandViewKind.Clock => "鏃堕挓",
-            IslandViewKind.InputMethod => "杈撳叆娉?,
-            IslandViewKind.LockKey => "閿侀敭",
-            IslandViewKind.Media => "濯掍綋",
+            IslandViewKind.Progress => "进度",
+            IslandViewKind.Status => "状态",
+            IslandViewKind.Clock => "时钟",
+            IslandViewKind.InputMethod => "输入法",
+            IslandViewKind.LockKey => "锁键",
+            IslandViewKind.Media => "媒体",
             IslandViewKind.Agent => "Agent",
-            IslandViewKind.Notification => "閫氱煡",
-            _ => "璇︽儏"
+            IslandViewKind.Notification => "通知",
+            _ => "详情"
         };
     }
 
     private static string BuildHoverSubtitle(HoverCardPresentation card)
     {
         if (card.Kind == IslandViewKind.Progress)
-            return card.IconKind == "brightness" ? "灞忓箷浜害鍙樺寲" : "绯荤粺闊抽噺鍙樺寲";
+            return card.IconKind == "brightness" ? "屏幕亮度变化" : "系统音量变化";
         if (card.Kind == IslandViewKind.Status)
             return card.StatusBadge;
         if (card.Kind == IslandViewKind.Media)
         {
-            // Show lyrics prominently when available, fall back to artist路album
+            // Show lyrics prominently when available, fall back to artist·album
             if (!string.IsNullOrWhiteSpace(card.LyricLine))
             {
                 var lyricText = card.LyricLine;
                 if (!string.IsNullOrWhiteSpace(card.SecondaryLyricLine))
-                    lyricText += $"  鈥? {card.SecondaryLyricLine}";
+                    lyricText += $"  ›  {card.SecondaryLyricLine}";
                 return lyricText;
             }
-            return string.IsNullOrWhiteSpace(card.Subtitle) ? "濯掍綋鎾斁" : card.Subtitle;
+            return string.IsNullOrWhiteSpace(card.Subtitle) ? "媒体播放" : card.Subtitle;
         }
         if (card.Kind == IslandViewKind.Agent)
-            return string.IsNullOrWhiteSpace(card.SourceName) ? "Agent 浠诲姟鐘舵€? : card.SourceName;
+            return string.IsNullOrWhiteSpace(card.SourceName) ? "Agent 任务状态" : card.SourceName;
         if (card.Kind == IslandViewKind.Notification)
-            return string.IsNullOrWhiteSpace(card.SourceName) ? "绯荤粺閫氱煡" : card.SourceName;
+            return string.IsNullOrWhiteSpace(card.SourceName) ? "系统通知" : card.SourceName;
         if (card.AllowsMultilineContent)
-            return $"鍙樉绀?{card.DetailLines} 琛屽唴瀹?;
+            return $"可显示 {card.DetailLines} 行内容";
         return ModeLabel(card.Kind);
     }
 
@@ -1680,7 +1688,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            // No old children 鈥?just add new ones with fade-in
+            // No old children — just add new ones with fade-in
             foreach (var child in newChildren)
                 HoverLyricsCanvas.Children.Add(child);
             var fadeIn = new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(120));
@@ -1748,7 +1756,7 @@ public partial class MainWindow : Window
                 (byte)Math.Min(255, color.B + 90)));
     }
 
-    /// <summary>寰姩寮规€?鈥?鏂颁簨浠跺埌杈炬椂缁欒嵂涓镐竴涓井灏忕殑缂╂斁鑴夊啿</summary>
+    /// <summary>微动弹性 — 新事件到达时给药丸一个微小的缩放脉冲</summary>
     private void NudgePill()
     {
         PillScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
@@ -1771,14 +1779,14 @@ public partial class MainWindow : Window
     }
 
     // ===========================================================
-    // 鐜粫寰厜鏃嬭浆
+    // 环绕微光旋转
     // ===========================================================
 
     private bool _rimContinuousRunning;
     private bool _rimPulseRunning;
     private int _rimAnimationToken;
 
-    /// <summary>鏇存柊寰厜棰滆壊锛堣窡闅?accent 鑹诧級</summary>
+    /// <summary>更新微光颜色（跟随 accent 色）</summary>
     private void UpdateRimColors(MediaColor accent)
     {
         RimStop0.Color = MediaColor.FromArgb(0x2A, accent.R, accent.G, accent.B);
@@ -1905,7 +1913,7 @@ public partial class MainWindow : Window
             });
     }
 
-    /// <summary>鏍规嵁閰嶇疆搴旂敤鐜粫寰厜妯″紡</summary>
+    /// <summary>根据配置应用环绕微光模式</summary>
     private void ApplyRimMode()
     {
         if (_settings.RimMode == "Always")
@@ -1918,7 +1926,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>濮嬬粓鏃嬭浆妯″紡 鈥?绾?WPF 鍔ㄧ敾锛岄伩鍏嶈鏃跺櫒鎶㈠啓 Opacity銆?/summary>
+    /// <summary>始终旋转模式 — 纯 WPF 动画，避免计时器抢写 Opacity。</summary>
     private void StartRimContinuous()
     {
         if (_rimContinuousRunning) return;
@@ -1976,7 +1984,7 @@ public partial class MainWindow : Window
         RimBrush.BeginAnimation(LinearGradientBrush.OpacityProperty, fadeOut);
     }
 
-    /// <summary>鑴夊啿鏃嬭浆 鈥?瑙﹀彂涓€娆?360掳 鏃嬭浆鍚庢贰鍑?/summary>
+    /// <summary>脉冲旋转 — 触发一次 360° 旋转后淡出</summary>
     private void TriggerRimPulse(string? source)
     {
         var mode = _settings.RimMode;
@@ -2041,10 +2049,11 @@ public partial class MainWindow : Window
         SetRimIdle();
     }
 
-    /// <summary>宸插睍寮€鏃跺埛鏂板唴瀹癸紙鏌斿拰鐨勬贰鍏ヨ繃娓?+ 閲嶇疆闅愯棌璁℃椂鍣級</summary>
+    /// <summary>已展开时刷新内容（柔和的淡入过渡 + 重置隐藏计时器）</summary>
     private void RefreshDisplay()
     {
-        // 娓呴櫎鏃у姩鐢?        ContentPanel.BeginAnimation(OpacityProperty, null);
+        // 清除旧动画
+        ContentPanel.BeginAnimation(OpacityProperty, null);
         ContentTranslate.BeginAnimation(TranslateTransform.YProperty, null);
         ContentTranslate.Y = 2;
 
@@ -2062,7 +2071,7 @@ public partial class MainWindow : Window
         ResetCollapseTimer();
     }
 
-    /// <summary>閲嶇疆鑷姩闅愯棌璁℃椂鍣?/summary>
+    /// <summary>重置自动隐藏计时器</summary>
     private void ResetCollapseTimer()
     {
         if (_isHoverCard)
@@ -2071,7 +2080,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 濯掍綋鎾斁涓笉鑷姩闅愯棌
+        // 媒体播放中不自动隐藏
         if (_currentView?.Kind == IslandViewKind.Media && _currentView.ShowsAudioWave)
         {
             _collapseTimer.Stop();
@@ -2111,7 +2120,8 @@ public partial class MainWindow : Window
         TitleText.Text = evt.Title;
         ProgressBarPanel.Visibility = Visibility.Visible;
 
-        // 闊抽噺绛夋樉绀烘尝褰?        if (view.ShowsAudioWave)
+        // 音量等显示波形
+        if (view.ShowsAudioWave)
         {
             AccessoryGrid.Visibility = Visibility.Visible;
             AudioWavePanel.Visibility = Visibility.Visible;
@@ -2137,7 +2147,8 @@ public partial class MainWindow : Window
         ProgressTrack.Width = maxBarWidth;
         var targetWidth = Math.Max(0, view.ProgressPercent / 100.0 * maxBarWidth);
 
-        // 浠庝笂涓€鍊煎姩鐢诲埌鏂板€硷紙閬垮厤浠?璺宠捣锛?        var currentWidth = ProgressFill.Width;
+        // 从上一值动画到新值（避免从0跳起）
+        var currentWidth = ProgressFill.Width;
         ProgressFill.BeginAnimation(System.Windows.Controls.Border.WidthProperty, null);
         ProgressFill.Width = currentWidth;
 
@@ -2152,7 +2163,8 @@ public partial class MainWindow : Window
         ProgressFill.BeginAnimation(System.Windows.Controls.Border.WidthProperty,
             new DoubleAnimation(targetWidth, duration) { EasingFunction = ease });
 
-        // 杩涘害鏉￠鑹?        if (evt.IconKind == "brightness")
+        // 进度条颜色
+        if (evt.IconKind == "brightness")
         {
             ProgressFill.Background = new LinearGradientBrush(
                 MediaColor.FromRgb(255, 214, 10), MediaColor.FromRgb(255, 179, 0), 0);
@@ -2221,7 +2233,7 @@ public partial class MainWindow : Window
         var contentWidth = MediaLayoutPolicy.CompactContentWidth(view.TargetWidth, view.ShowsAudioWave);
         var progressWidth = MediaLayoutPolicy.CompactProgressWidth(view.TargetWidth, view.ShowsAudioWave);
 
-        // Compact title line: song name路artist for music apps, source name for browsers
+        // Compact title line: song name·artist for music apps, source name for browsers
         if (isBrowser)
         {
             var sourceLabel = string.IsNullOrWhiteSpace(view.SourceName) ? "" : view.SourceName;
@@ -2234,7 +2246,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Music apps: show song name + artist (e.g. "澶滄洸 路 鍛ㄦ澃浼?)
+            // Music apps: show song name + artist (e.g. "夜曲 · 周杰伦")
             var songTitle = string.IsNullOrWhiteSpace(view.Content) ? "" : view.Content;
             var artistName = string.IsNullOrWhiteSpace(view.Subtitle) ? "" : view.Subtitle;
             TitleText.Text = string.IsNullOrWhiteSpace(songTitle)
@@ -2615,7 +2627,7 @@ public partial class MainWindow : Window
     {
         LockKeyPanel.Visibility = Visibility.Visible;
         LockKeyText.Text = evt.Title;
-        LockKeyStatus.Text = evt.Content.Contains("ON") ? "寮€" : "鍏?;
+        LockKeyStatus.Text = evt.Content.Contains("ON") ? "开" : "关";
 
         var isOn = evt.Content.Contains("ON");
         var targetColor = isOn
@@ -2632,7 +2644,7 @@ public partial class MainWindow : Window
         ImePanel.Visibility = Visibility.Visible;
         ImeText.Text = evt.Content;
 
-        var isChinese = evt.Content == "涓?;
+        var isChinese = evt.Content == "中";
         ImeBadgeColor.Color = isChinese
             ? MediaColor.FromRgb(10, 132, 255)
             : MediaColor.FromRgb(142, 142, 147);
@@ -2645,7 +2657,7 @@ public partial class MainWindow : Window
     {
         TitleText.Text = evt.Title;
         ContentText.Visibility = Visibility.Visible;
-        ContentText.Text = evt.Content; // e.g. "6鏈?4鏃?鍛ㄦ棩"
+        ContentText.Text = evt.Content; // e.g. "6月14日 周日"
     }
 
     private void ShowTextContent(IslandEvent evt, IslandViewPresentation view)
@@ -2679,7 +2691,7 @@ public partial class MainWindow : Window
         var evt = new IslandEvent(
             "clock",
             now.ToString("HH:mm"),
-            now.ToString("M鏈坉鏃?dddd"),
+            now.ToString("M月d日 dddd"),
             "clock");
         var view = IslandPresentation.FromEvent(evt, _settings);
 
@@ -2692,7 +2704,7 @@ public partial class MainWindow : Window
         ContentText.Visibility = Visibility.Visible;
         ContentText.Text = evt.Content;
 
-        // 濡傛灉鏄娆℃樉绀猴紙鏈睍寮€锛夛紝瑙﹀彂瀹屾暣灞曞紑鍔ㄧ敾
+        // 如果是首次显示（未展开），触发完整展开动画
         if (!_isExpanded)
         {
             _isExpanded = true;
@@ -2700,7 +2712,8 @@ public partial class MainWindow : Window
         }
         else
         {
-            // 宸插睍寮€锛氬钩婊戞洿鏂板唴瀹?            ContentPanel.BeginAnimation(OpacityProperty, null);
+            // 已展开：平滑更新内容
+            ContentPanel.BeginAnimation(OpacityProperty, null);
             var fadeIn = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(200))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
@@ -2731,11 +2744,12 @@ public partial class MainWindow : Window
             IconText.Visibility = Visibility.Visible;
         }
 
-        // 鍥炬爣娌″彉鏃惰烦杩囧脊璺冲姩鐢伙紙閬垮厤 AlwaysVisible 鏃堕挓姣忛殧鍑犵璺充竴涓嬶級
+        // 图标没变时跳过弹跳动画（避免 AlwaysVisible 时钟每隔几秒跳一下）
         if (kind == _currentIconKind) return;
         _currentIconKind = kind;
 
-        // 鍥炬爣鍒囨崲鏃舵挱鏀剧簿鑷寸缉鏀捐繃娓?        IconScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        // 图标切换时播放精致缩放过渡
+        IconScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         IconScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
         IconScale.ScaleX = 0.72;
         IconScale.ScaleY = 0.72;
@@ -2785,7 +2799,7 @@ public partial class MainWindow : Window
     }
 
     // ===========================================================
-    // 灞曞紑 / 鏀剁缉 鍔ㄧ敾
+    // 展开 / 收缩 动画
     // ===========================================================
 
     private void ExpandWithContent(string text, string? iconKind = null)
@@ -2934,7 +2948,8 @@ public partial class MainWindow : Window
         _isExpanded = false;
         _isHoverCard = false;
         _mediaActive = false;
-        _currentIconKind = null; // 鏀惰捣鍚庨噸缃紝涓嬫灞曞紑鏃跺姩鐢绘甯告挱鏀?        StopScrolling();
+        _currentIconKind = null; // 收起后重置，下次展开时动画正常播放
+        StopScrolling();
         StopHoverSpring();
         PillBorder.MaxWidth = _settings.ExpandedMaxWidth;
         HoverCardGrid.Visibility = Visibility.Collapsed;
@@ -2990,7 +3005,8 @@ public partial class MainWindow : Window
     }
 
     // ===========================================================
-    // 骞垮憡鐗屾粴鍔ㄦ枃瀛?    // ===========================================================
+    // 广告牌滚动文字
+    // ===========================================================
 
     private double _scrollOffset;
     private DateTime _scrollHoldUntil = DateTime.MinValue;
@@ -3040,7 +3056,7 @@ public partial class MainWindow : Window
             var elapsed = Environment.TickCount64 - _mediaLastUpdatedTicks;
             if (elapsed < 0) elapsed = 0;
             var durationTicks = _mediaEndTicks - _mediaStartTimeTicks;
-            var currentPosTicks = _mediaPositionTicks + elapsed * 10_000; // ms 鈫?.NET ticks
+            var currentPosTicks = _mediaPositionTicks + elapsed * 10_000; // ms → .NET ticks
             var fraction = Math.Clamp((double)(currentPosTicks - _mediaStartTimeTicks) / durationTicks, 0.0, 1.0);
             var trackWidth = ProgressBarPanel.ActualWidth > 10
                 ? ProgressBarPanel.ActualWidth : _mediaProgressTrackWidth;
@@ -3203,5 +3219,3 @@ public partial class MainWindow : Window
                lower.Contains("msedge") || lower.Contains("firefox");
     }
 }
-
-

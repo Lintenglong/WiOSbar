@@ -1,18 +1,18 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Windows.Threading;
 
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// 缃戠粶閫熷害鐩戞帶鍣?- 瀹炴椂鏄剧ず涓婁紶/涓嬭浇閫熺巼
+/// 网络速度监控器 - 实时显示上传/下载速率
 /// </summary>
 public sealed class NetworkSpeedMonitor : ISystemMonitor
 {
     public string Id => "network_speed";
-    public string Name => "缃戠粶閫熷害";
-    public string Description => "瀹炴椂缃戠粶涓婁紶/涓嬭浇閫熺巼";
-    public string Icon => "顪?; // Segoe MDL2 Network
+    public string Name => "网络速度";
+    public string Description => "实时网络上传/下载速率";
+    public string Icon => ""; // Segoe MDL2 Network
     public bool Enabled { get; set; } = true;
     public event Action<IslandEvent>? EventTriggered;
 
@@ -23,7 +23,8 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
     private DateTime _lastSampleTime = DateTime.UtcNow;
     private bool _firstSample = true;
 
-    // 缃戝崱缂撳瓨锛堥伩鍏嶆瘡娆￠兘鏋氫妇锛?    private NetworkInterface? _activeInterface;
+    // 网卡缓存（避免每次都枚举）
+    private NetworkInterface? _activeInterface;
     private DateTime _interfaceCacheTime = DateTime.MinValue;
     private static readonly TimeSpan InterfaceCacheTtl = TimeSpan.FromSeconds(30);
 
@@ -36,7 +37,8 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         _timer.Tick += (_, _) => SampleNetworkSpeed();
         _timer.Start();
 
-        // 棣栨寤惰繜 1 绉掗噰鏍?        _ = new DispatcherTimer
+        // 首次延迟 1 秒采样
+        _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
         }.Apply(t =>
@@ -46,7 +48,8 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
                 t.Stop();
                 SampleNetworkSpeed();
             };
-            _timer.Start();
+            t.Start();
+        });
     }
 
     public void Stop()
@@ -72,7 +75,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
             var elapsed = (now - _lastSampleTime).TotalSeconds;
 
             if (elapsed < 0.5)
-                return; // 閬垮厤閲囨牱杩囧瘑
+                return; // 避免采样过密
 
             var bytesReceived = stats.BytesReceived;
             var bytesSent = stats.BytesSent;
@@ -82,19 +85,20 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
                 var downloadBps = (bytesReceived - _lastBytesReceived) / elapsed;
                 var uploadBps = (bytesSent - _lastBytesSent) / elapsed;
 
-                // 杞崲涓?KB/s 鎴?MB/s
+                // 转换为 KB/s 或 MB/s
                 var downloadKbps = downloadBps / 1024.0;
                 var uploadKbps = uploadBps / 1024.0;
 
-                // 浠呭湪鏈夋樉钁楁椿鍔ㄦ椂瑙﹀彂锛? 10 KB/s锛?                if (downloadKbps > 10 || uploadKbps > 10)
+                // 仅在有显著活动时触发（> 10 KB/s）
+                if (downloadKbps > 10 || uploadKbps > 10)
                 {
                     var downloadStr = FormatSpeed(downloadKbps);
                     var uploadStr = FormatSpeed(uploadKbps);
 
                     EventTriggered?.Invoke(new IslandEvent(
                         Source: Id,
-                        Title: "缃戠粶",
-                        Content: $"鈫?{downloadStr}  鈫?{uploadStr}",
+                        Title: "网络",
+                        Content: $"↓ {downloadStr}  ↑ {uploadStr}",
                         IconKind: "network"));
                 }
             }
@@ -106,7 +110,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         }
         catch
         {
-            // 闈欓粯澶辫触
+            // 静默失败
         }
     }
 
@@ -121,7 +125,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
 
     private NetworkInterface? GetActiveNetworkInterface()
     {
-        // 浣跨敤缂撳瓨
+        // 使用缓存
         if (_activeInterface != null &&
             (DateTime.UtcNow - _interfaceCacheTime) < InterfaceCacheTtl)
         {
@@ -132,7 +136,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         {
             var interfaces = NetworkInterface.GetAllNetworkInterfaces();
 
-            // 浼樺厛閫夋嫨宸茶繛鎺ョ殑浠ュお缃戞垨 WiFi
+            // 优先选择已连接的以太网或 WiFi
             var active = interfaces.FirstOrDefault(ni =>
                 ni.OperationalStatus == OperationalStatus.Up &&
                 (ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
@@ -141,7 +145,8 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
 
             if (active == null)
             {
-                // 闄嶇骇锛氫换鎰忓凡杩炴帴鐨勬帴鍙?                active = interfaces.FirstOrDefault(ni =>
+                // 降级：任意已连接的接口
+                active = interfaces.FirstOrDefault(ni =>
                     ni.OperationalStatus == OperationalStatus.Up);
             }
 
@@ -161,4 +166,3 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         Stop();
     }
 }
-

@@ -1,11 +1,11 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.Json;
 using System.Windows.Media;
 
 namespace FluidBar;
 
 /// <summary>
-/// 涓婚鍖呯鐞嗗櫒 - 鏀寔棰勮涓婚鍜屽姩鎬佸绾搁€傞厤
+/// 主题包管理器 - 支持预设主题和动态壁纸适配
 /// </summary>
 public sealed class ThemeManager
 {
@@ -14,20 +14,20 @@ public sealed class ThemeManager
         "FluidBar", "theme.json");
 
     /// <summary>
-    /// 棰勮涓婚鍒楄〃
+    /// 预设主题列表
     /// </summary>
     public static readonly List<ThemePreset> BuiltInPresets = new()
     {
         new ThemePreset
         {
-            Name = "iOS 缁忓吀",
+            Name = "iOS 经典",
             Id = "ios_classic",
             BackgroundColor = "#F4000000",
             AccentColor = "#0A84FF",
             BackgroundOpacity = 0.75,
             RimColor = "#41FFFFFF",
             FontFamily = "Segoe UI",
-            Description = "榛樿鐨?iOS 鐏靛姩宀涢鏍?
+            Description = "默认的 iOS 灵动岛风格"
         },
         new ThemePreset
         {
@@ -38,29 +38,29 @@ public sealed class ThemeManager
             BackgroundOpacity = 0.85,
             RimColor = "#33FFFFFF",
             FontFamily = "Segoe UI",
-            Description = "Android 12+ Material You 椋庢牸"
+            Description = "Android 12+ Material You 风格"
         },
         new ThemePreset
         {
-            Name = "Neon 闇撹櫣",
+            Name = "Neon 霓虹",
             Id = "neon",
             BackgroundColor = "#E6000000",
             AccentColor = "#FF00FF",
             BackgroundOpacity = 0.80,
             RimColor = "#80FF00FF",
             FontFamily = "Consolas",
-            Description = "璧涘崥鏈嬪厠闇撹櫣椋庢牸"
+            Description = "赛博朋克霓虹风格"
         },
         new ThemePreset
         {
-            Name = "Minimal 鏋佺畝",
+            Name = "Minimal 极简",
             Id = "minimal",
             BackgroundColor = "#CCFFFFFF",
             AccentColor = "#000000",
             BackgroundOpacity = 0.90,
             RimColor = "#33000000",
             FontFamily = "Segoe UI",
-            Description = "绾櫧鏋佺畝椋庢牸"
+            Description = "纯白极简风格"
         },
         new ThemePreset
         {
@@ -71,28 +71,29 @@ public sealed class ThemeManager
             BackgroundOpacity = 0.70,
             RimColor = "#4DFFFFFF",
             FontFamily = "Segoe UI",
-            Description = "娣辫壊涓撲笟椋庢牸"
+            Description = "深色专业风格"
         },
         new ThemePreset
         {
-            Name = "Sunset 鏅氶湠",
+            Name = "Sunset 晚霞",
             Id = "sunset",
             BackgroundColor = "#F42D1B69",
             AccentColor = "#F97316",
             BackgroundOpacity = 0.78,
             RimColor = "#66F97316",
             FontFamily = "Segoe UI",
-            Description = "鏅氶湠娓愬彉椋庢牸"
+            Description = "晚霞渐变风格"
         }
     };
 
     /// <summary>
-    /// 褰撳墠涓婚
+    /// 当前主题
     /// </summary>
     public ThemePreset CurrentTheme { get; private set; } = BuiltInPresets[0];
 
     /// <summary>
-    /// 鍔犺浇淇濆瓨鐨勪富棰橀厤缃?    /// </summary>
+    /// 加载保存的主题配置
+    /// </summary>
     public static ThemeManager Load()
     {
         var manager = new ThemeManager();
@@ -106,16 +107,18 @@ public sealed class ThemeManager
 
                 if (saved != null)
                 {
-                    // 鏌ユ壘鍖归厤鐨勯璁?                    var preset = BuiltInPresets.FirstOrDefault(p => p.Id == saved.PresetId);
+                    // 查找匹配的预设
+                    var preset = BuiltInPresets.FirstOrDefault(p => p.Id == saved.PresetId);
                     if (preset != null)
                     {
                         manager.CurrentTheme = preset;
                     }
                     else if (!string.IsNullOrWhiteSpace(saved.CustomBackgroundColor))
                     {
-                        // 鑷畾涔変富棰?                        manager.CurrentTheme = new ThemePreset
+                        // 自定义主题
+                        manager.CurrentTheme = new ThemePreset
                         {
-                            Name = "鑷畾涔?,
+                            Name = "自定义",
                             Id = "custom",
                             BackgroundColor = saved.CustomBackgroundColor,
                             AccentColor = saved.CustomAccentColor ?? "#0A84FF",
@@ -133,17 +136,19 @@ public sealed class ThemeManager
     }
 
     /// <summary>
-    /// 搴旂敤涓婚鍒拌缃?    /// </summary>
+    /// 应用主题到设置
+    /// </summary>
     public void ApplyToSettings(FluidBarSettings settings)
     {
         settings.BackgroundColor = CurrentTheme.BackgroundColor;
         settings.AccentColor = CurrentTheme.AccentColor;
         settings.BackgroundOpacity = CurrentTheme.BackgroundOpacity;
-        // 娉ㄦ剰锛欳ornerRadius銆丱pacity 绛夊叾浠栧睘鎬т繚鎸佺敤鎴疯嚜瀹氫箟
+        // 注意：CornerRadius、Opacity 等其他属性保持用户自定义
     }
 
     /// <summary>
-    /// 鍒囨崲鍒版寚瀹氶璁?    /// </summary>
+    /// 切换到指定预设
+    /// </summary>
     public void SwitchToPreset(string presetId, FluidBarSettings settings)
     {
         var preset = BuiltInPresets.FirstOrDefault(p => p.Id == presetId);
@@ -156,7 +161,8 @@ public sealed class ThemeManager
     }
 
     /// <summary>
-    /// 浠庡绾告彁鍙栦富鑹诧紙绠€鍖栫増锛?    /// </summary>
+    /// 从壁纸提取主色（简化版）
+    /// </summary>
     public static ThemePreset? ExtractFromWallpaper(string wallpaperPath)
     {
         try
@@ -164,8 +170,9 @@ public sealed class ThemeManager
             if (!File.Exists(wallpaperPath))
                 return null;
 
-            // 绠€鍖栧疄鐜帮細瀹為檯搴斾娇鐢?System.Drawing.Bitmap 鍒嗘瀽鍍忕礌
-            // 杩欓噷杩斿洖涓€涓熀浜庢枃浠跺悕鐨勭ず渚嬩富棰?            var fileName = Path.GetFileNameWithoutExtension(wallpaperPath).ToLowerInvariant();
+            // 简化实现：实际应使用 System.Drawing.Bitmap 分析像素
+            // 这里返回一个基于文件名的示例主题
+            var fileName = Path.GetFileNameWithoutExtension(wallpaperPath).ToLowerInvariant();
 
             if (fileName.Contains("dark") || fileName.Contains("night"))
             {
@@ -191,7 +198,7 @@ public sealed class ThemeManager
     }
 
     /// <summary>
-    /// 淇濆瓨褰撳墠涓婚閰嶇疆
+    /// 保存当前主题配置
     /// </summary>
     public void Save()
     {
@@ -216,27 +223,28 @@ public sealed class ThemeManager
     }
 
     /// <summary>
-    /// 鑾峰彇涓婚棰勮鑹诧紙鐢ㄤ簬璁剧疆 UI锛?    /// </summary>
-    public static System.Windows.Media.Color GetPreviewColor(string hexColor)
+    /// 获取主题预览色（用于设置 UI）
+    /// </summary>
+    public static Color GetPreviewColor(string hexColor)
     {
         try
         {
             var colorStr = hexColor.TrimStart('#');
             if (colorStr.Length == 8)
             {
-                // ARGB 鏍煎紡
+                // ARGB 格式
                 var a = byte.Parse(colorStr.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
                 var r = byte.Parse(colorStr.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
                 var g = byte.Parse(colorStr.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
                 var b = byte.Parse(colorStr.Substring(6, 2), System.Globalization.NumberStyles.HexNumber);
-                return System.Windows.Media.Color.FromArgb(a, r, g, b);
+                return Color.FromArgb(a, r, g, b);
             }
             else if (colorStr.Length == 6)
             {
                 var r = byte.Parse(colorStr.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
                 var g = byte.Parse(colorStr.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
                 var b = byte.Parse(colorStr.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
-                return System.Windows.Media.Color.FromRgb(r, g, b);
+                return Color.FromRgb(r, g, b);
             }
         }
         catch { }
@@ -246,7 +254,7 @@ public sealed class ThemeManager
 }
 
 /// <summary>
-/// 涓婚棰勮
+/// 主题预设
 /// </summary>
 public sealed class ThemePreset
 {
@@ -261,7 +269,8 @@ public sealed class ThemePreset
 }
 
 /// <summary>
-/// 淇濆瓨鐨勪富棰橀厤缃?/// </summary>
+/// 保存的主题配置
+/// </summary>
 public sealed class SavedThemeConfig
 {
     public string? PresetId { get; set; }
@@ -271,6 +280,3 @@ public sealed class SavedThemeConfig
     public string? CustomRimColor { get; set; }
     public string? CustomFontFamily { get; set; }
 }
-
-
-

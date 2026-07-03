@@ -1,4 +1,3 @@
-﻿using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -7,16 +6,17 @@ using System.Windows.Threading;
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// 澶╂皵鐩戞帶鍣?- 鏀寔鍜岄澶╂皵 / OpenWeatherMap
-/// 闇€瑕佺敤鎴烽厤缃?API Key 鎵嶈兘鍚敤
+/// 天气监控器 - 支持和风天气 / OpenWeatherMap
+/// 需要用户配置 API Key 才能启用
 /// </summary>
 public sealed class WeatherMonitor : ISystemMonitor
 {
     public string Id => "weather";
-    public string Name => "澶╂皵";
-    public string Description => "褰撳墠澶╂皵鍜屾俯搴︼紙闇€閰嶇疆 API Key锛?;
-    public string Icon => "顪?; // Segoe MDL2 Sunny
-    public bool Enabled { get; set; } = false; // 榛樿绂佺敤锛岄渶閰嶇疆鍚庡惎鐢?    public event Action<IslandEvent>? EventTriggered;
+    public string Name => "天气";
+    public string Description => "当前天气和温度（需配置 API Key）";
+    public string Icon => ""; // Segoe MDL2 Sunny
+    public bool Enabled { get; set; } = false; // 默认禁用，需配置后启用
+    public event Action<IslandEvent>? EventTriggered;
 
     private DispatcherTimer? _timer;
     private bool _isRunning;
@@ -29,11 +29,12 @@ public sealed class WeatherMonitor : ISystemMonitor
     {
         if (_isRunning) return;
 
-        // 灏濊瘯鍔犺浇閰嶇疆
+        // 尝试加载配置
         _config = WeatherConfig.Load();
         if (_config == null || string.IsNullOrWhiteSpace(_config.ApiKey))
         {
-            // 鏈厤缃?API Key锛屼繚鎸佺鐢ㄧ姸鎬?            Enabled = false;
+            // 未配置 API Key，保持禁用状态
+            Enabled = false;
             return;
         }
 
@@ -44,7 +45,7 @@ public sealed class WeatherMonitor : ISystemMonitor
         _timer.Tick += (_, _) => FetchWeather();
         _timer.Start();
 
-        // 棣栨寤惰繜 5 绉掕幏鍙栵紙閬垮厤鍚姩鏃堕樆濉烇級
+        // 首次延迟 5 秒获取（避免启动时阻塞）
         _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(5)
@@ -55,7 +56,8 @@ public sealed class WeatherMonitor : ISystemMonitor
                 t.Stop();
                 FetchWeather();
             };
-            _timer.Start();
+            t.Start();
+        });
     }
 
     public void Stop()
@@ -70,7 +72,7 @@ public sealed class WeatherMonitor : ISystemMonitor
         if (!_isRunning || _config == null)
             return;
 
-        // 棰戠巼闄愬埗锛?0 鍒嗛挓鍐呬笉閲嶅璇锋眰
+        // 频率限制：30 分钟内不重复请求
         if ((DateTime.UtcNow - _lastFetchTime).TotalMinutes < 25)
             return;
 
@@ -101,49 +103,51 @@ public sealed class WeatherMonitor : ISystemMonitor
                 {
                     EventTriggered?.Invoke(new IslandEvent(
                         Source: Id,
-                        Title: $"{data.City} 路 {data.Condition}",
-                        Content: $"{data.Temp}掳C 浣撴劅 {data.FeelsLike}掳C",
+                        Title: $"{data.City} · {data.Condition}",
+                        Content: $"{data.Temp}°C 体感 {data.FeelsLike}°C",
                         IconKind: GetWeatherIcon(data.Condition)));
                 }
             }
         }
         catch
         {
-            // 闈欓粯澶辫触锛屼笅娆￠噸璇?        }
+            // 静默失败，下次重试
+        }
     }
 
     private static bool ShouldTriggerEvent(WeatherData data)
     {
-        // 棣栨鑾峰彇
+        // 首次获取
         if (data == null)
             return true;
 
-        // 娓╁害鍙樺寲 > 3掳C
-        // 澶╂皵鐘跺喌鍙樺寲
-        // 棰勮淇℃伅
+        // 温度变化 > 3°C
+        // 天气状况变化
+        // 预警信息
 
-        return true; // 绠€鍖栵細姣忔閮借Е鍙戯紙瀹為檯搴斾笌 _lastData 姣旇緝锛?    }
+        return true; // 简化：每次都触发（实际应与 _lastData 比较）
+    }
 
     private static string GetWeatherIcon(string condition)
     {
         var lower = condition.ToLowerInvariant();
 
-        if (lower.Contains("鏅?) || lower.Contains("clear") || lower.Contains("sun"))
+        if (lower.Contains("晴") || lower.Contains("clear") || lower.Contains("sun"))
             return "weather_sunny";
 
-        if (lower.Contains("浜?) || lower.Contains("cloud") || lower.Contains("闃?))
+        if (lower.Contains("云") || lower.Contains("cloud") || lower.Contains("阴"))
             return "weather_cloudy";
 
-        if (lower.Contains("闆?) || lower.Contains("rain"))
+        if (lower.Contains("雨") || lower.Contains("rain"))
             return "weather_rain";
 
-        if (lower.Contains("闆?) || lower.Contains("snow"))
+        if (lower.Contains("雪") || lower.Contains("snow"))
             return "weather_snow";
 
-        if (lower.Contains("闆?) || lower.Contains("闆?) || lower.Contains("闆?))
+        if (lower.Contains("雾") || lower.Contains("雾") || lower.Contains("雾"))
             return "weather_fog";
 
-        if (lower.Contains("闆?) || lower.Contains("thunder"))
+        if (lower.Contains("雷") || lower.Contains("thunder"))
             return "weather_thunder";
 
         return "weather";
@@ -184,19 +188,19 @@ public sealed class WeatherMonitor : ISystemMonitor
             if (main.TryGetProperty("feels_like", out var feelsLikeProp))
                 feelsLike = feelsLikeProp.GetDouble();
 
-            string condition = "鏈煡";
-            string city = "鏈煡鍩庡競";
+            string condition = "未知";
+            string city = "未知城市";
 
             if (doc.RootElement.TryGetProperty("weather", out var weather) &&
                 weather.GetArrayLength() > 0)
             {
                 var first = weather[0];
                 if (first.TryGetProperty("description", out var descProp))
-                    condition = descProp.GetString() ?? "鏈煡";
+                    condition = descProp.GetString() ?? "未知";
             }
 
             if (doc.RootElement.TryGetProperty("name", out var nameProp))
-                city = nameProp.GetString() ?? "鏈煡鍩庡競";
+                city = nameProp.GetString() ?? "未知城市";
 
             return new WeatherData(city, condition, temp, feelsLike, DateTime.UtcNow);
         }
@@ -210,7 +214,8 @@ public sealed class WeatherMonitor : ISystemMonitor
     {
         try
         {
-            // 鍜岄澶╂皵 API锛堥渶娉ㄥ唽鑾峰彇 Key锛?            // https://dev.qweather.com/docs/api/weather/weather-now/
+            // 和风天气 API（需注册获取 Key）
+            // https://dev.qweather.com/docs/api/weather/weather-now/
             var url = $"https://devapi.qweather.com/v7/weather/now?location={Uri.EscapeDataString(config.City ?? "101010100")}&key={config.ApiKey}";
 
             using var response = Http.GetAsync(url).GetAwaiter().GetResult();
@@ -218,7 +223,7 @@ public sealed class WeatherMonitor : ISystemMonitor
                 return null;
 
             var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            return ParseQWeatherResponse(json, config.City ?? "鍖椾含");
+            return ParseQWeatherResponse(json, config.City ?? "北京");
         }
         catch
         {
@@ -242,9 +247,9 @@ public sealed class WeatherMonitor : ISystemMonitor
             if (now.TryGetProperty("feelsLike", out var feelsLikeProp))
                 double.TryParse(feelsLikeProp.GetString(), out feelsLike);
 
-            string condition = "鏈煡";
+            string condition = "未知";
             if (now.TryGetProperty("text", out var textProp))
-                condition = textProp.GetString() ?? "鏈煡";
+                condition = textProp.GetString() ?? "未知";
 
             return new WeatherData(city, condition, temp, feelsLike, DateTime.UtcNow);
         }
@@ -279,7 +284,7 @@ public sealed class WeatherMonitor : ISystemMonitor
 }
 
 /// <summary>
-/// 澶╂皵閰嶇疆
+/// 天气配置
 /// </summary>
 public sealed class WeatherConfig
 {
@@ -319,7 +324,7 @@ public sealed class WeatherConfig
 }
 
 /// <summary>
-/// 澶╂皵鏁版嵁
+/// 天气数据
 /// </summary>
 public sealed record WeatherData(
     string City,
@@ -327,6 +332,3 @@ public sealed record WeatherData(
     double Temp,
     double FeelsLike,
     DateTime Timestamp);
-
-
-

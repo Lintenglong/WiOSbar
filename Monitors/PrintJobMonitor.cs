@@ -1,17 +1,17 @@
-﻿using System.Management;
+using System.Management;
 using System.Windows.Threading;
 
 namespace FluidBar.Monitors;
 
 /// <summary>
-/// 鎵撳嵃浠诲姟鐩戞帶鍣?- 鐩戞帶鎵撳嵃闃熷垪娲诲姩
+/// 打印任务监控器 - 监控打印队列活动
 /// </summary>
 public sealed class PrintJobMonitor : ISystemMonitor
 {
     public string Id => "print";
-    public string Name => "鎵撳嵃";
-    public string Description => "鎵撳嵃浠诲姟鐘舵€佺洃鎺?;
-    public string Icon => "瞑?; // Segoe MDL2 Print
+    public string Name => "打印";
+    public string Description => "打印任务状态监控";
+    public string Icon => ""; // Segoe MDL2 Print
     public bool Enabled { get; set; } = true;
     public event Action<IslandEvent>? EventTriggered;
 
@@ -29,7 +29,8 @@ public sealed class PrintJobMonitor : ISystemMonitor
         _timer.Tick += (_, _) => CheckPrintJobs();
         _timer.Start();
 
-        // 棣栨寤惰繜妫€鏌?        _ = new DispatcherTimer
+        // 首次延迟检查
+        _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(2)
         }.Apply(t =>
@@ -39,7 +40,8 @@ public sealed class PrintJobMonitor : ISystemMonitor
                 t.Stop();
                 CheckPrintJobs();
             };
-            _timer.Start();
+            t.Start();
+        });
     }
 
     public void Stop()
@@ -62,36 +64,38 @@ public sealed class PrintJobMonitor : ISystemMonitor
             var jobs = searcher.Get().Cast<ManagementObject>().ToList();
             var jobCount = jobs.Count;
 
-            // 妫€娴嬫墦鍗颁换鍔″彉鍖?            if (jobCount > 0 && !_hasActiveJobs)
+            // 检测打印任务变化
+            if (jobCount > 0 && !_hasActiveJobs)
             {
-                // 鏂版墦鍗颁换鍔″紑濮?                _hasActiveJobs = true;
+                // 新打印任务开始
+                _hasActiveJobs = true;
                 var firstJob = jobs.FirstOrDefault();
                 var document = firstJob?["Document"]?.ToString() ?? "Unknown";
                 var printer = firstJob?["Name"]?.ToString() ?? "Printer";
 
                 EventTriggered?.Invoke(new IslandEvent(
                     Source: Id,
-                    Title: "鎵撳嵃涓?,
+                    Title: "打印中",
                     Content: $"{document}",
                     IconKind: "print"));
             }
             else if (jobCount == 0 && _hasActiveJobs)
             {
-                // 鎵撳嵃瀹屾垚
+                // 打印完成
                 _hasActiveJobs = false;
                 EventTriggered?.Invoke(new IslandEvent(
                     Source: Id,
-                    Title: "鎵撳嵃瀹屾垚",
-                    Content: "鎵€鏈変换鍔″凡瀹屾垚",
+                    Title: "打印完成",
+                    Content: "所有任务已完成",
                     IconKind: "print"));
             }
             else if (jobCount != _lastJobCount && jobCount > 0)
             {
-                // 浠诲姟鏁伴噺鍙樺寲
+                // 任务数量变化
                 EventTriggered?.Invoke(new IslandEvent(
                     Source: Id,
-                    Title: "鎵撳嵃闃熷垪",
-                    Content: $"{jobCount} 涓换鍔?,
+                    Title: "打印队列",
+                    Content: $"{jobCount} 个任务",
                     IconKind: "print"));
             }
 
@@ -99,7 +103,8 @@ public sealed class PrintJobMonitor : ISystemMonitor
         }
         catch
         {
-            // 闈欓粯澶辫触锛堟煇浜涚郴缁熷彲鑳界鐢?WMI锛?        }
+            // 静默失败（某些系统可能禁用 WMI）
+        }
     }
 
     public void Dispose()
@@ -107,4 +112,3 @@ public sealed class PrintJobMonitor : ISystemMonitor
         Stop();
     }
 }
-
