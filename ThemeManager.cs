@@ -225,7 +225,7 @@ public sealed class ThemeManager
     /// <summary>
     /// 获取主题预览色（用于设置 UI）
     /// </summary>
-    public static Color GetPreviewColor(string hexColor)
+    public static System.Windows.Media.Color GetPreviewColor(string hexColor)
     {
         try
         {
@@ -237,14 +237,14 @@ public sealed class ThemeManager
                 var r = byte.Parse(colorStr.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
                 var g = byte.Parse(colorStr.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
                 var b = byte.Parse(colorStr.Substring(6, 2), System.Globalization.NumberStyles.HexNumber);
-                return Color.FromArgb(a, r, g, b);
+                return System.Windows.Media.Color.FromArgb(a, r, g, b);
             }
             else if (colorStr.Length == 6)
             {
                 var r = byte.Parse(colorStr.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
                 var g = byte.Parse(colorStr.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
                 var b = byte.Parse(colorStr.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
-                return Color.FromRgb(r, g, b);
+                return System.Windows.Media.Color.FromRgb(r, g, b);
             }
         }
         catch { }
