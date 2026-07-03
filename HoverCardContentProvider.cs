@@ -1,6 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using WpfBrushes = System.Windows.Media.Brushes;
+using WpfColor = System.Windows.Media.Color;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using WpfOrientation = System.Windows.Controls.Orientation;
+using WpfProgressBar = System.Windows.Controls.ProgressBar;
 
 namespace FluidBar;
 
@@ -16,7 +21,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = Orientation.Vertical,
+            Orientation = WpfOrientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -28,7 +33,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.White,
+                Foreground = WpfBrushes.White,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 350
             });
@@ -40,7 +45,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 12,
-                Foreground = Brushes.LightGray,
+                Foreground = WpfBrushes.LightGray,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 350
@@ -48,21 +53,21 @@ public static class HoverCardContentProvider
         }
 
         // 进度条（如果有）
-        if (view.Payload?.ProgressPercent.HasValue == true)
+        if (view.ProgressPercent >= 0)
         {
             var progressPanel = new StackPanel
             {
-                Orientation = Orientation.Horizontal,
+                Orientation = WpfOrientation.Horizontal,
                 Margin = new Thickness(0, 12, 0, 0)
             };
 
-            var progressBar = new ProgressBar
+            var progressBar = new WpfProgressBar
             {
                 Width = 300,
                 Height = 6,
-                Value = view.Payload.ProgressPercent.Value,
-                Background = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
-                Foreground = new SolidColorBrush(Color.FromRgb(10, 132, 255))
+                Value = view.ProgressPercent,
+                Background = new SolidColorBrush(WpfColor.FromArgb(60, 255, 255, 255)),
+                Foreground = new SolidColorBrush(WpfColor.FromRgb(10, 132, 255))
             };
 
             progressPanel.Children.Add(progressBar);
@@ -74,7 +79,7 @@ public static class HoverCardContentProvider
         {
             var lyricBorder = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+                Background = new SolidColorBrush(WpfColor.FromArgb(40, 255, 255, 255)),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(12, 8, 12, 8),
                 Margin = new Thickness(0, 12, 0, 0)
@@ -86,7 +91,7 @@ public static class HoverCardContentProvider
             {
                 Text = "当前歌词",
                 FontSize = 10,
-                Foreground = Brushes.Gray,
+                Foreground = WpfBrushes.Gray,
                 Margin = new Thickness(0, 0, 0, 4)
             });
 
@@ -94,7 +99,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.LyricLine,
                 FontSize = 13,
-                Foreground = Brushes.White,
+                Foreground = WpfBrushes.White,
                 FontWeight = FontWeights.Medium,
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -106,7 +111,7 @@ public static class HoverCardContentProvider
                 {
                     Text = view.SecondaryLyricLine,
                     FontSize = 11,
-                    Foreground = Brushes.LightGray,
+                    Foreground = WpfBrushes.LightGray,
                     Margin = new Thickness(0, 4, 0, 0),
                     TextWrapping = TextWrapping.Wrap,
                     MaxWidth = 320
@@ -122,9 +127,9 @@ public static class HoverCardContentProvider
         {
             Text = "按住 Ctrl+Alt 隐藏灵动岛",
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = WpfBrushes.Gray,
             Margin = new Thickness(0, 12, 0, 0),
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = WpfHorizontalAlignment.Center
         };
         panel.Children.Add(hintText);
 
@@ -138,7 +143,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = Orientation.Vertical,
+            Orientation = WpfOrientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -149,7 +154,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.SourceName,
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(90, 200, 250)),
+                Foreground = new SolidColorBrush(WpfColor.FromRgb(90, 200, 250)),
                 FontWeight = FontWeights.Medium
             });
         }
@@ -162,7 +167,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.White,
+                Foreground = WpfBrushes.White,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -176,7 +181,7 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 12,
-                Foreground = Brushes.LightGray,
+                Foreground = WpfBrushes.LightGray,
                 Margin = new Thickness(0, 4, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 320
@@ -186,7 +191,7 @@ public static class HoverCardContentProvider
         // 操作提示
         var actionHint = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
+            Background = new SolidColorBrush(WpfColor.FromArgb(30, 255, 255, 255)),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(8, 4, 8, 4),
             Margin = new Thickness(0, 12, 0, 0)
@@ -196,8 +201,8 @@ public static class HoverCardContentProvider
         {
             Text = "点击通知可快速操作",
             FontSize = 10,
-            Foreground = Brushes.Gray,
-            HorizontalAlignment = HorizontalAlignment.Center
+            Foreground = WpfBrushes.Gray,
+            HorizontalAlignment = WpfHorizontalAlignment.Center
         };
 
         panel.Children.Add(actionHint);
@@ -212,7 +217,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = Orientation.Vertical,
+            Orientation = WpfOrientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -224,7 +229,7 @@ public static class HoverCardContentProvider
                 Text = view.Title,
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White
+                Foreground = WpfBrushes.White
             });
         }
 
@@ -235,17 +240,17 @@ public static class HoverCardContentProvider
             {
                 Text = view.Content,
                 FontSize = 13,
-                Foreground = Brushes.LightGray,
+                Foreground = WpfBrushes.LightGray,
                 Margin = new Thickness(0, 6, 0, 0)
             });
         }
 
         // 详细数值（如果有）
-        if (view.Payload?.ProgressPercent.HasValue == true)
+        if (view.ProgressPercent >= 0)
         {
             var detailPanel = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+                Background = new SolidColorBrush(WpfColor.FromArgb(40, 255, 255, 255)),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(12),
                 Margin = new Thickness(0, 12, 0, 0)
@@ -259,15 +264,15 @@ public static class HoverCardContentProvider
                     {
                         Text = "详细数值",
                         FontSize = 10,
-                        Foreground = Brushes.Gray,
+                        Foreground = WpfBrushes.Gray,
                         Margin = new Thickness(0, 0, 0, 4)
                     },
                     new TextBlock
                     {
-                        Text = $"{view.Payload.ProgressPercent.Value:F1}%",
+                        Text = $"{view.ProgressPercent:F1}%",
                         FontSize = 20,
                         FontWeight = FontWeights.Bold,
-                        Foreground = Brushes.White
+                        Foreground = WpfBrushes.White
                     }
                 }
             };
@@ -280,7 +285,7 @@ public static class HoverCardContentProvider
         {
             Text = "💡 历史趋势将在下个版本提供",
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = WpfBrushes.Gray,
             Margin = new Thickness(0, 12, 0, 0)
         };
         panel.Children.Add(trendHint);
@@ -295,7 +300,7 @@ public static class HoverCardContentProvider
     {
         var panel = new StackPanel
         {
-            Orientation = Orientation.Vertical,
+            Orientation = WpfOrientation.Vertical,
             Margin = new Thickness(16)
         };
 
@@ -304,7 +309,7 @@ public static class HoverCardContentProvider
         {
             var previewBorder = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+                Background = new SolidColorBrush(WpfColor.FromArgb(40, 255, 255, 255)),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(12),
                 MaxWidth = 320
@@ -316,7 +321,7 @@ public static class HoverCardContentProvider
                     ? view.Content.Substring(0, 200) + "..."
                     : view.Content,
                 FontSize = 12,
-                Foreground = Brushes.White,
+                Foreground = WpfBrushes.White,
                 TextWrapping = TextWrapping.Wrap
             };
 
@@ -329,7 +334,7 @@ public static class HoverCardContentProvider
         {
             Text = "💡 历史记录功能即将推出",
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = WpfBrushes.Gray,
             Margin = new Thickness(0, 12, 0, 0)
         };
         panel.Children.Add(historyHint);
@@ -350,7 +355,7 @@ public static class HoverCardContentProvider
             IslandViewKind.Media => CreateMediaHoverContent(view, settings),
             IslandViewKind.Notification => CreateNotificationHoverContent(view),
             IslandViewKind.Progress or IslandViewKind.Status => CreateSystemStatusHoverContent(view),
-            _ when view.Source == "clipboard" => CreateClipboardHoverContent(view, clipboardSettings),
+            _ when view.SourceName == "clipboard" => CreateClipboardHoverContent(view, clipboardSettings),
             _ => null
         };
     }

@@ -43,7 +43,10 @@ public sealed record IslandEvent(
     string Title,
     string Content,
     string? IconKind = null,
-    IslandEventPayload? Payload = null);
+    IslandEventPayload? Payload = null)
+{
+    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+}
 
 /// <summary>
 /// 事件总线 - 所有事件源通过此接口触发灵动岛

@@ -10,7 +10,7 @@ namespace FluidBar;
 /// </summary>
 public sealed class HotkeyManager : IDisposable
 {
-    private readonly HwndSource? _hwndSource;
+    private HwndSource? _hwndSource;
     private readonly Dictionary<int, Action> _hotkeyActions = new();
     private int _nextHotkeyId = 9000; // 起始 ID，避免与系统热键冲突
 

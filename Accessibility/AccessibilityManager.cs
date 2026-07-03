@@ -1,5 +1,9 @@
 using System.Windows;
 using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Media;
+using WpfApplication = System.Windows.Application;
+using WpfControl = System.Windows.Controls.Control;
 using System.Windows.Controls;
 
 namespace FluidBar.Accessibility;
@@ -101,12 +105,6 @@ public static class AccessibilityManager
         {
             var child = VisualTreeHelper.GetChild(parent, i);
 
-            // 为 Border 设置角色
-            if (child is Border border)
-            {
-                AutomationProperties.SetControlType(border, AutomationControlType.Pane);
-            }
-
             // 为 TextBlock 设置名称
             if (child is TextBlock textBlock && string.IsNullOrEmpty(AutomationProperties.GetName(textBlock)))
             {
@@ -125,9 +123,9 @@ public static class AccessibilityManager
         try
         {
             // 使用 AutomationPeer 发送通知
-            if (Application.Current?.MainWindow != null)
+            if (WpfApplication.Current?.MainWindow != null)
             {
-                var peer = UIElementAutomationPeer.FromElement(Application.Current.MainWindow);
+                var peer = UIElementAutomationPeer.FromElement(WpfApplication.Current.MainWindow);
                 if (peer != null)
                 {
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
@@ -174,7 +172,7 @@ public static class AccessibilityManager
         {
             textBlock.FontSize *= scale;
         }
-        else if (element is Control control)
+        else if (element is WpfControl control)
         {
             if (control.FontSize > 0)
                 control.FontSize *= scale;
