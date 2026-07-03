@@ -24,6 +24,7 @@ public sealed class WeatherMonitor : ISystemMonitor
     private WeatherConfig? _config;
     private WeatherData? _lastData;
     private DateTime _lastFetchTime = DateTime.MinValue;
+    private int _isFetching;
     private static readonly TimeSpan FetchInterval = TimeSpan.FromMinutes(30);
 
     public void Start()
@@ -43,7 +44,7 @@ public sealed class WeatherMonitor : ISystemMonitor
         _isRunning = true;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) };
-        _timer.Tick += (_, _) => FetchWeather();
+        _timer.Tick += (_, _) => QueueFetchWeather();
         _timer.Start();
 
         // 首次延迟 5 秒获取（避免启动时阻塞）
@@ -55,7 +56,7 @@ public sealed class WeatherMonitor : ISystemMonitor
             t.Tick += (_, _) =>
             {
                 t.Stop();
-                FetchWeather();
+                QueueFetchWeather();
             };
             t.Start();
         });
@@ -68,6 +69,17 @@ public sealed class WeatherMonitor : ISystemMonitor
         _timer = null;
     }
 
+    private void QueueFetchWeather()
+    {
+        if (!_isRunning || _config == null || System.Threading.Interlocked.Exchange(ref _isFetching, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { FetchWeather(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isFetching, 0); }
+        });
+    }
     private void FetchWeather()
     {
         if (!_isRunning || _config == null)

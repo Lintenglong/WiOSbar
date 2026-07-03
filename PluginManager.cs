@@ -36,6 +36,7 @@ public sealed class PluginManager : IDisposable
     private readonly List<IIslandPlugin> _plugins = new();
     private readonly EventBus _bus;
     private readonly FluidBarSettings _settings;
+    private readonly System.Windows.Threading.Dispatcher? _dispatcher;
 
     public IReadOnlyList<IIslandPlugin> Plugins => _plugins;
 
@@ -43,6 +44,7 @@ public sealed class PluginManager : IDisposable
     {
         _bus = bus;
         _settings = settings;
+        _dispatcher = System.Windows.Application.Current?.Dispatcher;
     }
 
     /// <summary>
@@ -52,7 +54,7 @@ public sealed class PluginManager : IDisposable
     {
         plugin.Enabled = _settings.IsPluginEnabled(plugin.Id, plugin.Enabled);
         plugin.Initialize();
-        plugin.EventTriggered += evt => _bus.Publish(evt);
+        plugin.EventTriggered += PublishOnUiThread;
         _plugins.Add(plugin);
     }
 
@@ -81,6 +83,17 @@ public sealed class PluginManager : IDisposable
             plugin.Stop();
     }
 
+    private void PublishOnUiThread(IslandEvent evt)
+    {
+        var dispatcher = _dispatcher ?? System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null || dispatcher.CheckAccess())
+        {
+            _bus.Publish(evt);
+            return;
+        }
+
+        dispatcher.BeginInvoke(new Action(() => _bus.Publish(evt)));
+    }
     public void Dispose()
     {
         foreach (var p in _plugins)

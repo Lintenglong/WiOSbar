@@ -20,32 +20,52 @@ public sealed class MemoryMonitor : ISystemMonitor
     private float _lastPercent = -1;
     private PerformanceCounter? _memoryCounter;
     private bool _counterInitialized;
+    private int _isChecking;
 
     public void Start()
     {
         if (_isRunning) return;
         _isRunning = true;
+        _ = InitializeCounterAsync();
+    }
 
+    private async Task InitializeCounterAsync()
+    {
         if (!_counterInitialized)
         {
             try
             {
-                _memoryCounter = new PerformanceCounter("Memory", "% Committed Bytes In Use");
-                _memoryCounter.NextValue();
-                _counterInitialized = true;
+                await Task.Run(() =>
+                {
+                    _memoryCounter = new PerformanceCounter("Memory", "% Committed Bytes In Use");
+                    _memoryCounter.NextValue();
+                    _counterInitialized = true;
+                }).ConfigureAwait(false);
             }
             catch
             {
                 Enabled = false;
+                _isRunning = false;
                 return;
             }
         }
 
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null || dispatcher.CheckAccess())
+            StartTimer();
+        else
+            dispatcher.BeginInvoke(new Action(StartTimer));
+    }
+
+    private void StartTimer()
+    {
+        if (!_isRunning || _timer != null)
+            return;
+
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        _timer.Tick += (_, _) => CheckMemory();
+        _timer.Tick += (_, _) => QueueCheckMemory();
         _timer.Start();
 
-        // 首次延迟检查
         _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
@@ -54,12 +74,11 @@ public sealed class MemoryMonitor : ISystemMonitor
             t.Tick += (_, _) =>
             {
                 t.Stop();
-                CheckMemory();
+                QueueCheckMemory();
             };
             t.Start();
         });
     }
-
     public void Stop()
     {
         _isRunning = false;
@@ -67,6 +86,17 @@ public sealed class MemoryMonitor : ISystemMonitor
         _timer = null;
     }
 
+    private void QueueCheckMemory()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isChecking, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { CheckMemory(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isChecking, 0); }
+        });
+    }
     private void CheckMemory()
     {
         if (!_isRunning || _memoryCounter == null)

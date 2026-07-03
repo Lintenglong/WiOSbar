@@ -46,16 +46,17 @@ public sealed class VolumeMonitor : ISystemMonitor
     private int _lastVolume = -1;
     private bool _lastMute;
     private bool _isRunning;
+    private int _isPolling;
 
     public void Start()
     {
         if (_isRunning) return;
         _isRunning = true;
 
-        _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-        _pollTimer.Tick += (_, _) => PollVolume();
+        _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _pollTimer.Tick += (_, _) => QueuePollVolume();
         _pollTimer.Start();
-        PollVolume();
+        QueuePollVolume();
     }
 
     public void Stop()
@@ -66,6 +67,17 @@ public sealed class VolumeMonitor : ISystemMonitor
         _pollTimer = null;
     }
 
+    private void QueuePollVolume()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isPolling, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { PollVolume(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isPolling, 0); }
+        });
+    }
     private void PollVolume()
     {
         try

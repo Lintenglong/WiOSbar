@@ -17,6 +17,7 @@ public sealed class NetworkMonitor : ISystemMonitor
     private bool _lastConnected;
     private string _lastSsid = "";
     private bool _isRunning;
+    private int _isChecking;
 
     public void Start()
     {
@@ -38,23 +39,34 @@ public sealed class NetworkMonitor : ISystemMonitor
 
     private void OnNetworkChanged(object? sender, EventArgs e)
     {
-        System.Windows.Application.Current.Dispatcher.BeginInvoke(() =>
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isChecking, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
         {
-            var connected = GetConnectionStatus();
-            if (connected == _lastConnected) return;
-
-            _lastConnected = connected;
-            var ssid = connected ? GetWifiSsid() : "";
-
-            if (connected)
+            try
             {
-                _lastSsid = ssid;
-                EventTriggered?.Invoke(new IslandEvent(Id, "网络已连接", ssid, "network"));
+                var connected = GetConnectionStatus();
+                if (connected == _lastConnected)
+                    return;
+
+                _lastConnected = connected;
+                var ssid = connected ? GetWifiSsid() : "";
+
+                if (connected)
+                {
+                    _lastSsid = ssid;
+                    EventTriggered?.Invoke(new IslandEvent(Id, "Network connected", ssid, "network"));
+                }
+                else
+                {
+                    _lastSsid = "";
+                    EventTriggered?.Invoke(new IslandEvent(Id, "Network disconnected", "No network connection", "network_off"));
+                }
             }
-            else
+            finally
             {
-                _lastSsid = "";
-                EventTriggered?.Invoke(new IslandEvent(Id, "网络已断开", "无网络连接", "network_off"));
+                System.Threading.Interlocked.Exchange(ref _isChecking, 0);
             }
         });
     }

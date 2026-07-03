@@ -140,7 +140,7 @@ public sealed class MediaPlugin : IIslandPlugin
 
         try
         {
-            await PollAsync();
+            await Task.Run(PollAsync).ConfigureAwait(false);
         }
         catch
         {
@@ -161,7 +161,7 @@ public sealed class MediaPlugin : IIslandPlugin
             MediaSnapshot? fallbackSnapshot = null;
 
             if (_sessionProvider is not null)
-                gsmSnapshot = await _sessionProvider.ReadAsync(_lyricsProvider, _settings.ShowLyrics);
+                gsmSnapshot = await _sessionProvider.ReadAsync(_lyricsProvider, _settings.ShowLyrics).ConfigureAwait(false);
 
             if (MediaSnapshotSelectionPolicy.ShouldQueryFallback(gsmSnapshot))
             {
@@ -413,7 +413,7 @@ public sealed class MediaPlugin : IIslandPlugin
                     return spotifyResult;
 
                 return kugouResult; // 返回 Kugou 结果（即使无歌词）
-            });
+            }).ConfigureAwait(false);
 
             // Only store if the song hasn't changed during the async enrichment
             if (enrichKey != _currentTrackKey)

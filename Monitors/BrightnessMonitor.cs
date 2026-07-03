@@ -53,16 +53,17 @@ public sealed class BrightnessMonitor : ISystemMonitor
     private bool _isRunning;
     private int _lastBrightness = -1;
     private bool _useWmiFallback;
+    private int _isPolling;
 
     public void Start()
     {
         if (_isRunning) return;
         _isRunning = true;
 
-        _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
-        _pollTimer.Tick += (_, _) => PollBrightness();
+        _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _pollTimer.Tick += (_, _) => QueuePollBrightness();
         _pollTimer.Start();
-        PollBrightness();
+        QueuePollBrightness();
     }
 
     public void Stop()
@@ -72,6 +73,17 @@ public sealed class BrightnessMonitor : ISystemMonitor
         _pollTimer = null;
     }
 
+    private void QueuePollBrightness()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isPolling, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { PollBrightness(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isPolling, 0); }
+        });
+    }
     private void PollBrightness()
     {
         try

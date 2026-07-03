@@ -9,6 +9,7 @@ public sealed class SystemMonitorManager : IDisposable
     private readonly EventBus _bus;
     private readonly FluidBarSettings? _settings;
     private readonly bool _persistSettings;
+    private readonly System.Windows.Threading.Dispatcher? _dispatcher;
 
     public IReadOnlyList<ISystemMonitor> Monitors => _monitors;
 
@@ -17,21 +18,31 @@ public sealed class SystemMonitorManager : IDisposable
         _bus = bus;
         _settings = settings;
         _persistSettings = persistSettings;
+        _dispatcher = System.Windows.Application.Current?.Dispatcher;
     }
 
     public void Register(ISystemMonitor monitor)
     {
         monitor.Enabled = _settings?.IsMonitorEnabled(monitor.Id, monitor.Enabled)
             ?? monitor.Enabled;
-        monitor.EventTriggered += evt => _bus.Publish(evt);
+        monitor.EventTriggered += PublishOnUiThread;
         _monitors.Add(monitor);
     }
 
     public void StartAll()
     {
-        foreach (var m in _monitors)
+        _ = StartEnabledMonitorsAsync();
+    }
+
+    private async Task StartEnabledMonitorsAsync()
+    {
+        foreach (var monitor in _monitors)
         {
-            if (m.Enabled) m.Start();
+            if (!monitor.Enabled)
+                continue;
+
+            monitor.Start();
+            await Task.Delay(120);
         }
     }
 
@@ -46,6 +57,17 @@ public sealed class SystemMonitorManager : IDisposable
         else monitor.Stop();
     }
 
+    private void PublishOnUiThread(IslandEvent evt)
+    {
+        var dispatcher = _dispatcher ?? System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null || dispatcher.CheckAccess())
+        {
+            _bus.Publish(evt);
+            return;
+        }
+
+        dispatcher.BeginInvoke(new Action(() => _bus.Publish(evt)));
+    }
     public void Dispose()
     {
         foreach (var m in _monitors)

@@ -24,13 +24,13 @@ public sealed class DiskMonitor : ISystemMonitor
     private PerformanceCounter? _diskWriteCounter;
     private bool _counterInitialized;
     private string _systemDrive = "C";
+    private int _isChecking;
 
     public void Start()
     {
         if (_isRunning) return;
         _isRunning = true;
 
-        // 获取系统盘符
         try
         {
             _systemDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C";
@@ -40,29 +40,49 @@ public sealed class DiskMonitor : ISystemMonitor
             _systemDrive = "C";
         }
 
+        _ = InitializeCountersAsync();
+    }
+
+    private async Task InitializeCountersAsync()
+    {
         if (!_counterInitialized)
         {
             try
             {
-                var instanceName = $"{_systemDrive}:";
-                _diskReadCounter = new PerformanceCounter("LogicalDisk", "Disk Read Bytes/sec", instanceName);
-                _diskWriteCounter = new PerformanceCounter("LogicalDisk", "Disk Write Bytes/sec", instanceName);
-                _diskReadCounter.NextValue();
-                _diskWriteCounter.NextValue();
-                _counterInitialized = true;
+                await Task.Run(() =>
+                {
+                    var instanceName = $"{_systemDrive}:";
+                    _diskReadCounter = new PerformanceCounter("LogicalDisk", "Disk Read Bytes/sec", instanceName);
+                    _diskWriteCounter = new PerformanceCounter("LogicalDisk", "Disk Write Bytes/sec", instanceName);
+                    _diskReadCounter.NextValue();
+                    _diskWriteCounter.NextValue();
+                    _counterInitialized = true;
+                }).ConfigureAwait(false);
             }
             catch
             {
                 Enabled = false;
+                _isRunning = false;
                 return;
             }
         }
 
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null || dispatcher.CheckAccess())
+            StartTimer();
+        else
+            dispatcher.BeginInvoke(new Action(StartTimer));
+    }
+
+    private void StartTimer()
+    {
+        if (!_isRunning || _timer != null)
+            return;
+
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
-        _timer.Tick += (_, _) => CheckDisk();
+        _timer.Tick += (_, _) => QueueCheckDisk();
         _timer.Start();
 
-        // 首次延迟检查
         _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
@@ -71,12 +91,11 @@ public sealed class DiskMonitor : ISystemMonitor
             t.Tick += (_, _) =>
             {
                 t.Stop();
-                CheckDisk();
+                QueueCheckDisk();
             };
             t.Start();
         });
     }
-
     public void Stop()
     {
         _isRunning = false;
@@ -84,6 +103,17 @@ public sealed class DiskMonitor : ISystemMonitor
         _timer = null;
     }
 
+    private void QueueCheckDisk()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isChecking, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { CheckDisk(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isChecking, 0); }
+        });
+    }
     private void CheckDisk()
     {
         if (!_isRunning || _diskReadCounter == null || _diskWriteCounter == null)

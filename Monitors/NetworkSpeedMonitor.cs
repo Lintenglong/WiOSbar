@@ -22,6 +22,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
     private long _lastBytesSent;
     private DateTime _lastSampleTime = DateTime.UtcNow;
     private bool _firstSample = true;
+    private int _isSampling;
 
     // 网卡缓存（避免每次都枚举）
     private NetworkInterface? _activeInterface;
@@ -34,7 +35,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         _isRunning = true;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _timer.Tick += (_, _) => SampleNetworkSpeed();
+        _timer.Tick += (_, _) => QueueSampleNetworkSpeed();
         _timer.Start();
 
         // 首次延迟 1 秒采样
@@ -46,7 +47,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
             t.Tick += (_, _) =>
             {
                 t.Stop();
-                SampleNetworkSpeed();
+                QueueSampleNetworkSpeed();
             };
             t.Start();
         });
@@ -59,6 +60,17 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         _timer = null;
     }
 
+    private void QueueSampleNetworkSpeed()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isSampling, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { SampleNetworkSpeed(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isSampling, 0); }
+        });
+    }
     private void SampleNetworkSpeed()
     {
         if (!_isRunning)

@@ -20,34 +20,52 @@ public sealed class CpuMonitor : ISystemMonitor
     private float _lastPercent = -1;
     private PerformanceCounter? _cpuCounter;
     private bool _counterInitialized;
+    private int _isChecking;
 
     public void Start()
     {
         if (_isRunning) return;
         _isRunning = true;
+        _ = InitializeCounterAsync();
+    }
 
-        // 延迟初始化 PerformanceCounter（首次创建需要 ~1 秒）
+    private async Task InitializeCounterAsync()
+    {
         if (!_counterInitialized)
         {
             try
             {
-                _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-                _cpuCounter.NextValue(); // 首次调用返回 0，需要预热
-                _counterInitialized = true;
+                await Task.Run(() =>
+                {
+                    _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                    _cpuCounter.NextValue();
+                    _counterInitialized = true;
+                }).ConfigureAwait(false);
             }
             catch
             {
-                // PerformanceCounter 不可用（如某些精简系统），静默降级
                 Enabled = false;
+                _isRunning = false;
                 return;
             }
         }
 
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null || dispatcher.CheckAccess())
+            StartTimer();
+        else
+            dispatcher.BeginInvoke(new Action(StartTimer));
+    }
+
+    private void StartTimer()
+    {
+        if (!_isRunning || _timer != null)
+            return;
+
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-        _timer.Tick += (_, _) => CheckCpu();
+        _timer.Tick += (_, _) => QueueCheckCpu();
         _timer.Start();
 
-        // 首次检查延迟 1 秒（等待 PerformanceCounter 预热）
         _ = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
@@ -56,12 +74,11 @@ public sealed class CpuMonitor : ISystemMonitor
             t.Tick += (_, _) =>
             {
                 t.Stop();
-                CheckCpu();
+                QueueCheckCpu();
             };
             t.Start();
         });
     }
-
     public void Stop()
     {
         _isRunning = false;
@@ -69,6 +86,17 @@ public sealed class CpuMonitor : ISystemMonitor
         _timer = null;
     }
 
+    private void QueueCheckCpu()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isChecking, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { CheckCpu(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isChecking, 0); }
+        });
+    }
     private void CheckCpu()
     {
         if (!_isRunning || _cpuCounter == null)

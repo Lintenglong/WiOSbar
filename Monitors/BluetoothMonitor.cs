@@ -18,16 +18,17 @@ public sealed class BluetoothMonitor : ISystemMonitor
     private DispatcherTimer? _timer;
     private HashSet<string> _lastDevices = new();
     private bool _isRunning;
+    private int _isChecking;
 
     public void Start()
     {
         if (_isRunning) return;
         _isRunning = true;
 
-        _lastDevices = GetConnectedDevices();
+        _ = RefreshInitialDevicesAsync();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
-        _timer.Tick += (_, _) => CheckDevices();
+        _timer.Tick += (_, _) => QueueCheckDevices();
         _timer.Start();
     }
 
@@ -38,6 +39,24 @@ public sealed class BluetoothMonitor : ISystemMonitor
         _timer = null;
     }
 
+    private async Task RefreshInitialDevicesAsync()
+    {
+        var devices = await Task.Run(GetConnectedDevices).ConfigureAwait(false);
+        if (_isRunning)
+            _lastDevices = devices;
+    }
+
+    private void QueueCheckDevices()
+    {
+        if (!_isRunning || System.Threading.Interlocked.Exchange(ref _isChecking, 1) == 1)
+            return;
+
+        _ = Task.Run(() =>
+        {
+            try { CheckDevices(); }
+            finally { System.Threading.Interlocked.Exchange(ref _isChecking, 0); }
+        });
+    }
     private void CheckDevices()
     {
         try
