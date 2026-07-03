@@ -22,6 +22,7 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
     private long _lastBytesSent;
     private DateTime _lastSampleTime = DateTime.UtcNow;
     private bool _firstSample = true;
+    private bool _wasNetworkBusy;
     private int _isSampling;
 
     // 网卡缓存（避免每次都枚举）
@@ -85,34 +86,30 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
             var stats = ni.GetIPv4Statistics();
             var now = DateTime.UtcNow;
             var elapsed = (now - _lastSampleTime).TotalSeconds;
-
             if (elapsed < 0.5)
-                return; // 避免采样过密
+                return;
 
             var bytesReceived = stats.BytesReceived;
             var bytesSent = stats.BytesSent;
 
             if (!_firstSample && elapsed > 0)
             {
-                var downloadBps = (bytesReceived - _lastBytesReceived) / elapsed;
-                var uploadBps = (bytesSent - _lastBytesSent) / elapsed;
+                var downloadKbps = (bytesReceived - _lastBytesReceived) / elapsed / 1024.0;
+                var uploadKbps = (bytesSent - _lastBytesSent) / elapsed / 1024.0;
+                var isBusy = downloadKbps >= 10240 || uploadKbps >= 2048;
 
-                // 转换为 KB/s 或 MB/s
-                var downloadKbps = downloadBps / 1024.0;
-                var uploadKbps = uploadBps / 1024.0;
-
-                // 仅在有显著活动时触发（> 10 KB/s）
-                if (downloadKbps > 10 || uploadKbps > 10)
+                if (isBusy && !_wasNetworkBusy)
                 {
                     var downloadStr = FormatSpeed(downloadKbps);
                     var uploadStr = FormatSpeed(uploadKbps);
-
                     EventTriggered?.Invoke(new IslandEvent(
                         Source: Id,
-                        Title: "网络",
-                        Content: $"↓ {downloadStr}  ↑ {uploadStr}",
+                        Title: "网络繁忙",
+                        Content: $"下行 {downloadStr} / 上行 {uploadStr}",
                         IconKind: "network"));
                 }
+
+                _wasNetworkBusy = isBusy;
             }
 
             _lastBytesReceived = bytesReceived;
@@ -122,7 +119,6 @@ public sealed class NetworkSpeedMonitor : ISystemMonitor
         }
         catch
         {
-            // 静默失败
         }
     }
 

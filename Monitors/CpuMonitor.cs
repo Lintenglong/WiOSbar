@@ -105,52 +105,30 @@ public sealed class CpuMonitor : ISystemMonitor
         try
         {
             var percent = _cpuCounter.NextValue();
-
-            // 忽略异常值
             if (percent < 0 || percent > 100)
                 return;
 
-            // 仅在变化超过 5% 或超过阈值时触发
-            var shouldTrigger = Math.Abs(percent - _lastPercent) > 5 ||
-                               (percent > 80 && _lastPercent <= 80) ||
-                               (percent > 90 && _lastPercent <= 90);
+            var previous = _lastPercent;
+            _lastPercent = percent;
+            if (previous < 0)
+                return;
 
-            if (shouldTrigger || _lastPercent < 0)
-            {
-                _lastPercent = percent;
+            var crossedHigh = previous < 85 && percent >= 85;
+            var crossedCritical = previous < 95 && percent >= 95;
+            if (!crossedHigh && !crossedCritical)
+                return;
 
-                string iconKind, title, content;
-                var iconColor = "cpu";
-
-                if (percent >= 90)
-                {
-                    iconKind = "cpu_high";
-                    title = $"CPU 占用 {percent:F0}%";
-                    content = "系统负载较高";
-                }
-                else if (percent >= 70)
-                {
-                    iconKind = "cpu";
-                    title = $"CPU 占用 {percent:F0}%";
-                    content = "系统繁忙";
-                }
-                else
-                {
-                    iconKind = "cpu";
-                    title = $"CPU {percent:F0}%";
-                    content = "运行正常";
-                }
-
-                EventTriggered?.Invoke(new IslandEvent(
-                    Source: Id,
-                    Title: title,
-                    Content: content,
-                    IconKind: iconKind));
-            }
+            var iconKind = percent >= 95 ? "cpu_high" : "cpu";
+            var title = $"CPU {percent:F0}%";
+            var content = percent >= 95 ? "系统负载很高" : "CPU 占用偏高";
+            EventTriggered?.Invoke(new IslandEvent(
+                Source: Id,
+                Title: title,
+                Content: content,
+                IconKind: iconKind));
         }
         catch
         {
-            // 静默失败
         }
     }
 

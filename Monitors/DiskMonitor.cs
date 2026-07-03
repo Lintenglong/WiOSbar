@@ -123,52 +123,26 @@ public sealed class DiskMonitor : ISystemMonitor
         {
             var readBytes = _diskReadCounter.NextValue();
             var writeBytes = _diskWriteCounter.NextValue();
-
-            // 转换为 MB/s
             var readMB = readBytes / (1024 * 1024);
             var writeMB = writeBytes / (1024 * 1024);
             var totalMB = readMB + writeMB;
+            var previousTotal = (_lastReadBytes + _lastWriteBytes) / (1024 * 1024);
 
-            // 仅在磁盘活动显著（> 5MB/s）或变化大时触发
-            var prevTotal = (_lastReadBytes + _lastWriteBytes) / (1024 * 1024);
-            var shouldTrigger = totalMB > 5 && Math.Abs(totalMB - prevTotal) > 3;
+            _lastReadBytes = readBytes;
+            _lastWriteBytes = writeBytes;
 
-            if (shouldTrigger)
-            {
-                _lastReadBytes = readBytes;
-                _lastWriteBytes = writeBytes;
+            var crossedBusy = previousTotal < 80 && totalMB >= 80;
+            if (!crossedBusy)
+                return;
 
-                string iconKind, title, content;
-
-                if (totalMB > 50)
-                {
-                    iconKind = "disk_active";
-                    title = "磁盘繁忙";
-                    content = $"读 {readMB:F1} / 写 {writeMB:F1} MB/s";
-                }
-                else if (totalMB > 20)
-                {
-                    iconKind = "disk";
-                    title = "磁盘活动";
-                    content = $"读 {readMB:F1} / 写 {writeMB:F1} MB/s";
-                }
-                else
-                {
-                    iconKind = "disk";
-                    title = "磁盘";
-                    content = $"{totalMB:F0} MB/s";
-                }
-
-                EventTriggered?.Invoke(new IslandEvent(
-                    Source: Id,
-                    Title: title,
-                    Content: content,
-                    IconKind: iconKind));
-            }
+            EventTriggered?.Invoke(new IslandEvent(
+                Source: Id,
+                Title: "磁盘繁忙",
+                Content: $"读 {readMB:F1} / 写 {writeMB:F1} MB/s",
+                IconKind: "disk_active"));
         }
         catch
         {
-            // 静默失败
         }
     }
 

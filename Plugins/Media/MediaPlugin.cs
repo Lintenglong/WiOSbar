@@ -42,6 +42,8 @@ public sealed class MediaPlugin : IIslandPlugin
     private MediaSnapshot? _lastEnrichedSnapshot;
     private string? _currentTrackKey;
     private bool _bgEnrichmentPending;
+    private int _missedSnapshotPolls;
+    private const int MissedPollsBeforeStopped = 3;
 
     // Track lyric changes separately (lyrics excluded from main signature to avoid island jump)
     private string _lastLyricSignature = string.Empty;
@@ -194,13 +196,16 @@ public sealed class MediaPlugin : IIslandPlugin
 
             if (snapshot is null)
             {
-                if (!string.IsNullOrEmpty(_lastSignature))
+                if (!string.IsNullOrEmpty(_lastSignature) && ++_missedSnapshotPolls >= MissedPollsBeforeStopped)
                 {
                     _lastSignature = string.Empty;
+                    _lastLyricSignature = string.Empty;
                     EventTriggered?.Invoke(MediaIslandEventFactory.CreateStopped());
                 }
                 return;
             }
+
+            _missedSnapshotPolls = 0;
 
             // Track active provider
             _lastFromGsm = gsmSnapshot is not null || (snapshot.PositionTicks > 0 && fallbackSnapshot is null);

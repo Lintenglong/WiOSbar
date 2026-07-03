@@ -16,7 +16,8 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType">
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, Microsoft YaHei">
 
     <Grid x:Name="IslandRoot" Margin="14" ClipToBounds="False">
         <Border x:Name="OuterBloom"
@@ -198,18 +199,18 @@
                             </StackPanel.RenderTransform>
 
                             <TextBlock x:Name="TitleText"
-                                       FontSize="10.5"
-                                       FontWeight="SemiBold"
+                                       FontSize="11"
+                                       FontWeight="Medium"
                                        FontFamily="Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI"
-                                       Foreground="#9C9CA1"
+                                       Foreground="#B8B8BE"
                                        Margin="0,0,0,3"
                                        TextTrimming="CharacterEllipsis"/>
 
                             <TextBlock x:Name="ContentText"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       FontWeight="Medium"
                                        FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"
-                                       Foreground="#F7F7F9"
+                                       Foreground="#F4F4F6"
                                        TextTrimming="CharacterEllipsis"
                                        MaxWidth="430"
                                        TextWrapping="NoWrap"
@@ -247,8 +248,8 @@
                                            Margin="0,0,6,0"/>
                                 <TextBlock x:Name="StatusText"
                                            Grid.Column="2"
-                                           FontSize="12.5"
-                                           FontWeight="SemiBold"
+                                           FontSize="13"
+                                           FontWeight="Medium"
                                            FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"
                                            Foreground="#D6D6DA"
                                            TextTrimming="CharacterEllipsis"
@@ -265,8 +266,8 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Name="LockKeyText"
                                            Grid.Column="0"
-                                           FontSize="12.5"
-                                           FontWeight="SemiBold"
+                                           FontSize="13"
+                                           FontWeight="Medium"
                                            FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"
                                            Foreground="#D6D6DA"
                                            VerticalAlignment="Center"
@@ -324,8 +325,8 @@
                                     ClipToBounds="True"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="ScrollText"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
+                                           FontSize="13"
+                                           FontWeight="Medium"
                                            FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"
                                            Foreground="#FFFFFF"
                                            Canvas.Top="1"/>
@@ -447,7 +448,7 @@
                                     Margin="13,1,12,0"
                                     VerticalAlignment="Center">
                             <TextBlock x:Name="HoverTitleText"
-                                       FontSize="16"
+                                       FontSize="16.5"
                                        FontWeight="SemiBold"
                                        FontFamily="Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI"
                                        Foreground="#FAFAFC"
@@ -486,8 +487,8 @@
                                 Margin="0,8,0,4"/>
                         <!-- Fallback body text for non-media -->
                         <TextBlock x:Name="HoverBodyText"
-                                   FontSize="13"
-                                   FontWeight="SemiBold"
+                                   FontSize="13.5"
+                                   FontWeight="Medium"
                                    LineHeight="18"
                                    FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"
                                    Foreground="#E7E7EA"

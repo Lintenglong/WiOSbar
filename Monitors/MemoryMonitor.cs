@@ -105,50 +105,30 @@ public sealed class MemoryMonitor : ISystemMonitor
         try
         {
             var percent = _memoryCounter.NextValue();
-
             if (percent < 0 || percent > 100)
                 return;
 
-            // 内存变化阈值：3%，警告阈值：85%/95%
-            var shouldTrigger = Math.Abs(percent - _lastPercent) > 3 ||
-                               (percent > 85 && _lastPercent <= 85) ||
-                               (percent > 95 && _lastPercent <= 95);
+            var previous = _lastPercent;
+            _lastPercent = percent;
+            if (previous < 0)
+                return;
 
-            if (shouldTrigger || _lastPercent < 0)
-            {
-                _lastPercent = percent;
+            var crossedHigh = previous < 88 && percent >= 88;
+            var crossedCritical = previous < 96 && percent >= 96;
+            if (!crossedHigh && !crossedCritical)
+                return;
 
-                string iconKind, title, content;
-
-                if (percent >= 95)
-                {
-                    iconKind = "memory_high";
-                    title = $"内存占用 {percent:F0}%";
-                    content = "内存不足，建议关闭应用";
-                }
-                else if (percent >= 85)
-                {
-                    iconKind = "memory";
-                    title = $"内存占用 {percent:F0}%";
-                    content = "内存占用较高";
-                }
-                else
-                {
-                    iconKind = "memory";
-                    title = $"内存 {percent:F0}%";
-                    content = "运行正常";
-                }
-
-                EventTriggered?.Invoke(new IslandEvent(
-                    Source: Id,
-                    Title: title,
-                    Content: content,
-                    IconKind: iconKind));
-            }
+            var iconKind = percent >= 96 ? "memory_high" : "memory";
+            var title = $"Memory {percent:F0}%";
+            var content = percent >= 96 ? "内存压力很高" : "内存占用偏高";
+            EventTriggered?.Invoke(new IslandEvent(
+                Source: Id,
+                Title: title,
+                Content: content,
+                IconKind: iconKind));
         }
         catch
         {
-            // 静默失败
         }
     }
 

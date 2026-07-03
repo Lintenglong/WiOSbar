@@ -653,6 +653,9 @@ public partial class MainWindow : Window
             _mediaActive = view.Kind == IslandViewKind.Media && view.ShowsAudioWave;
         }
 
+        if (IsAmbientMetricSource(evt.Source) && _currentView is { Kind: IslandViewKind.Media })
+            return;
+
         // 媒体播放中，非媒体事件不覆盖主显示。
         // 多岛屿模式下只入栈并同步快照窗口，不更新主岛内容。
         if (_mediaActive && evt.Source != "media")
@@ -1033,9 +1036,13 @@ public partial class MainWindow : Window
 
     private bool IsMediaPlaying()
     {
-        return _mediaActive;
+        return _mediaActive || _currentView?.Kind == IslandViewKind.Media;
     }
 
+    private static bool IsAmbientMetricSource(string? source)
+    {
+        return source is "cpu" or "memory" or "disk" or "network_speed";
+    }
     private bool ShouldEmphasizeSource(string? source)
     {
         if (string.IsNullOrWhiteSpace(source))
@@ -2081,7 +2088,7 @@ public partial class MainWindow : Window
         }
 
         // 媒体播放中不自动隐藏
-        if (_currentView?.Kind == IslandViewKind.Media && _currentView.ShowsAudioWave)
+        if (_currentView?.Kind == IslandViewKind.Media && (_currentView.ShowsAudioWave || _mediaActive))
         {
             _collapseTimer.Stop();
             return;
