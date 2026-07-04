@@ -54,7 +54,7 @@ public sealed class MemoryMonitor : ISystemMonitor
         if (dispatcher == null || dispatcher.CheckAccess())
             StartTimer();
         else
-            dispatcher.BeginInvoke(new Action(StartTimer));
+            _ = dispatcher.BeginInvoke(new Action(StartTimer));
     }
 
     private void StartTimer()

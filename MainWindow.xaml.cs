@@ -610,7 +610,7 @@ public partial class MainWindow : Window
                 _currentView = cur with
                 {
                     LyricLine = newLyric,
-                    SecondaryLyricLine = evt.Payload?.SecondaryLyricLine,
+                    SecondaryLyricLine = evt.Payload?.SecondaryLyricLine ?? "",
                     AlbumArtPath = string.IsNullOrWhiteSpace(newArt) ? cur.AlbumArtPath : newArt,
                 };
                 // If album art arrived from BG enrichment, re-apply icon
@@ -1106,7 +1106,7 @@ public partial class MainWindow : Window
         if (!GetCursorPos(out var point))
             return IsMouseOver;
 
-        var local = PointFromScreen(new Point(point.X, point.Y));
+        var local = PointFromScreen(new System.Windows.Point(point.X, point.Y));
         return local.X >= -padding && local.X <= ActualWidth + padding &&
                local.Y >= -padding && local.Y <= ActualHeight + padding;
     }
