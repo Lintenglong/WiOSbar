@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="..\EventSystem.cs" Link="EventSystem.cs" />
+    <Compile Include="..\EventAggregationPolicy.cs" Link="EventAggregationPolicy.cs" />
     <Compile Include="..\IslandPresentation.cs" Link="IslandPresentation.cs" />
     <Compile Include="..\Monitors\SystemMonitorManager.cs" Link="SystemMonitorManager.cs" />
     <Compile Include="..\PluginCatalog.cs" Link="PluginCatalog.cs" />

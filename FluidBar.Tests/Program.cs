@@ -100,6 +100,64 @@ Test("display strategy defaults to latest only", () =>
     AssertEqual(false, IslandStackPolicy.CanStack(defaultSettings));
 });
 
+Test("media snapshots are not suppressed as duplicate text", () =>
+{
+    var previous = new IslandEvent(
+        "media",
+        "Chrome",
+        "lofi radio - YouTube",
+        "media",
+        new IslandEventPayload(Kind: IslandEventKind.Media, IsActive: true, ProgressPercent: 12));
+    var next = previous with
+    {
+        Payload = previous.Payload with { ProgressPercent = 18 },
+        Timestamp = previous.Timestamp.AddSeconds(1)
+    };
+
+    AssertEqual(false, EventAggregationPolicy.ShouldSuppress(next, previous));
+});
+
+Test("passive monitor events defer to persistent media", () =>
+{
+    var clock = new IslandEvent("clock", "18:30", "date", "clock");
+    var cpu = new IslandEvent("cpu", "CPU", "18%", "cpu");
+    var networkSpeed = new IslandEvent("network_speed", "network", "1.2 MB/s", "network");
+
+    AssertEqual(true, MediaDisplayInterruptionPolicy.ShouldDeferToPersistentMedia(
+        clock,
+        IslandViewKind.Clock,
+        mediaActive: true,
+        hasPersistentMedia: true));
+    AssertEqual(true, MediaDisplayInterruptionPolicy.ShouldDeferToPersistentMedia(
+        cpu,
+        IslandViewKind.Status,
+        mediaActive: true,
+        hasPersistentMedia: true));
+    AssertEqual(true, MediaDisplayInterruptionPolicy.ShouldDeferToPersistentMedia(
+        networkSpeed,
+        IslandViewKind.Status,
+        mediaActive: true,
+        hasPersistentMedia: true));
+});
+
+Test("user initiated events can temporarily overlay media", () =>
+{
+    var volume = new IslandEvent("volume", "volume 40%", "40%", "volume");
+    var notification = new IslandEvent("notifications", "chat", "message", "notification",
+        new IslandEventPayload(Kind: IslandEventKind.Notification));
+
+    AssertEqual(false, MediaDisplayInterruptionPolicy.ShouldDeferToPersistentMedia(
+        volume,
+        IslandViewKind.Progress,
+        mediaActive: true,
+        hasPersistentMedia: true));
+    AssertEqual(false, MediaDisplayInterruptionPolicy.ShouldDeferToPersistentMedia(
+        notification,
+        IslandViewKind.Notification,
+        mediaActive: true,
+        hasPersistentMedia: true));
+});
+
 Test("plugin catalog contains the official source plugins", () =>
 {
     var catalogPath = Path.GetFullPath(Path.Combine(

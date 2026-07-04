@@ -596,46 +596,6 @@ public partial class MainWindow : Window
         if (_snapshotWindows.Count > 0)
             CloseSnapshotWindows(immediate: true);
 
-        // Lyric-only update: same source/title/artist, only lyrics changed — update text directly
-        // without re-rendering the entire island (avoids "jump" and hover card disruption)
-        if (evt.Source == "media" && _currentView is { Kind: IslandViewKind.Media } cur &&
-            evt.Title == cur.Title && evt.Content == cur.Content && evt.Source == _currentSource)
-        {
-            var newLyric = evt.Payload?.LyricLine ?? "";
-            var oldLyric = cur.LyricLine ?? "";
-            var newArt = evt.Payload?.AlbumArtPath;
-            var artChanged = !string.IsNullOrWhiteSpace(newArt) && newArt != cur.AlbumArtPath;
-            if (newLyric != oldLyric || artChanged)
-            {
-                _currentView = cur with
-                {
-                    LyricLine = newLyric,
-                    SecondaryLyricLine = evt.Payload?.SecondaryLyricLine ?? "",
-                    AlbumArtPath = string.IsNullOrWhiteSpace(newArt) ? cur.AlbumArtPath : newArt,
-                };
-                // If album art arrived from BG enrichment, re-apply icon
-                if (artChanged)
-                {
-                    _lastTriedIconPath = null;
-                    _lastTriedIconResult = null;
-                    ApplyCompactMediaIcon(_currentView.AlbumArtPath, _currentView.AppIconPath);
-                }
-                if (_isHoverCard && HoverLyricsCanvas.Visibility == Visibility.Visible)
-                {
-                    // Only update lyrics canvas — do NOT call ApplyHoverCardContent (it would re-render the card)
-                    UpdateHoverLyrics(newLyric, evt.Payload?.SecondaryLyricLine);
-                }
-                else
-                {
-                    // Update compact view text directly
-                    var isMusicApp = !IsBrowserSourceId(_currentView.SourceName) && !string.IsNullOrWhiteSpace(_currentView.SourceName);
-                    if (isMusicApp && !string.IsNullOrWhiteSpace(newLyric))
-                        ContentText.Text = newLyric;
-                }
-                return;
-            }
-        }
-
         var view = IslandPresentation.FromEvent(
             evt,
             _settings,
@@ -644,6 +604,18 @@ public partial class MainWindow : Window
         // 时钟监控只在常驻/已展开时更新，避免每 10 秒主动弹出。
         if (view.Kind == IslandViewKind.Clock && !_settings.AlwaysVisible && !_isExpanded)
             return;
+
+        // Passive background refreshes should never steal the main slot from active media.
+        if (MediaDisplayInterruptionPolicy.ShouldDeferToPersistentMedia(
+                evt,
+                view.Kind,
+                _mediaActive,
+                _persistentMediaView is not null))
+        {
+            if (_currentView is null || _currentView.Kind == IslandViewKind.Clock)
+                TryRestorePersistentMedia();
+            return;
+        }
 
         // Stopped/paused media: clear the media base, but do not kill a transient overlay.
         if (evt.Source == "media" && evt.Payload?.IsActive == false)
@@ -687,6 +659,9 @@ public partial class MainWindow : Window
             {
                 _persistentMediaEvent = evt;
                 _persistentMediaView = view;
+
+                if (TryApplyIncrementalMediaUpdate(evt, view))
+                    return;
 
                 if (_currentView is not null &&
                     _currentView.Kind != IslandViewKind.Media &&
@@ -1055,6 +1030,94 @@ public partial class MainWindow : Window
     private bool IsMediaPlaying()
     {
         return _mediaActive || _currentView?.Kind == IslandViewKind.Media;
+    }
+
+    private bool TryApplyIncrementalMediaUpdate(IslandEvent evt, IslandViewPresentation view)
+    {
+        if (_currentView is not { Kind: IslandViewKind.Media } current || _currentSource != "media")
+            return false;
+
+        if (!IsSameMediaSurface(current, view))
+            return false;
+
+        var needsContentRefresh = MediaCompactProgressVisibility(current) != MediaCompactProgressVisibility(view)
+            || current.ShowsAudioWave != view.ShowsAudioWave
+            || !string.Equals(current.LyricLine, view.LyricLine, StringComparison.Ordinal)
+            || !string.Equals(current.SecondaryLyricLine, view.SecondaryLyricLine, StringComparison.Ordinal)
+            || !string.Equals(current.AlbumArtPath, view.AlbumArtPath, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(current.AppIconPath, view.AppIconPath, StringComparison.OrdinalIgnoreCase);
+
+        _currentView = view;
+        _currentSource = evt.Source;
+        _lastEvent = evt;
+        _mediaActive = evt.Payload?.IsActive != false;
+        _persistentMediaEvent = evt;
+        _persistentMediaView = view;
+
+        if (needsContentRefresh)
+        {
+            HideAllPanels();
+            ShowMediaContent(evt, view);
+            if (_isHoverCard)
+                ApplyHoverCardContent(HoverCardPresentation.FromCompact(view, _settings));
+        }
+        else
+        {
+            RefreshCompactMediaProgress(view);
+            if (_isHoverCard)
+                RefreshHoverMediaProgress(HoverCardPresentation.FromCompact(view, _settings));
+        }
+
+        return true;
+    }
+
+    private static bool IsSameMediaSurface(IslandViewPresentation current, IslandViewPresentation next)
+    {
+        return next.Kind == IslandViewKind.Media
+            && string.Equals(current.Title, next.Title, StringComparison.Ordinal)
+            && string.Equals(current.Content, next.Content, StringComparison.Ordinal)
+            && string.Equals(current.Subtitle, next.Subtitle, StringComparison.Ordinal)
+            && string.Equals(current.SourceName, next.SourceName, StringComparison.Ordinal)
+            && string.Equals(current.StatusBadge, next.StatusBadge, StringComparison.Ordinal);
+    }
+
+    private bool MediaCompactProgressVisibility(IslandViewPresentation view)
+    {
+        var isBrowser = IsBrowserSourceId(view.SourceName);
+        var hasPosition = view.PositionTicks > 0 || view.EndTicks > view.StartTimeTicks;
+        return (isBrowser || hasPosition) && view.ProgressPercent >= 0;
+    }
+
+    private void RefreshCompactMediaProgress(IslandViewPresentation view)
+    {
+        _mediaPositionTicks = view.PositionTicks;
+        _mediaEndTicks = view.EndTicks;
+        _mediaStartTimeTicks = view.StartTimeTicks;
+        _mediaLastUpdatedTicks = view.LastUpdatedTicks;
+
+        if (ProgressBarPanel.Visibility == Visibility.Visible && view.ProgressPercent >= 0)
+        {
+            var trackWidth = ProgressBarPanel.ActualWidth > 10
+                ? ProgressBarPanel.ActualWidth
+                : _mediaProgressTrackWidth > 10
+                    ? _mediaProgressTrackWidth
+                    : MediaLayoutPolicy.CompactProgressWidth(view.TargetWidth, view.ShowsAudioWave);
+            ProgressFill.BeginAnimation(Border.WidthProperty, null);
+            ProgressFill.Width = Math.Max(0, trackWidth * view.ProgressPercent / 100.0);
+        }
+
+        MediaPlayPauseIcon.Text = MediaPlaybackUiPolicy.PlayPauseGlyph(view.ShowsAudioWave);
+    }
+
+    private void RefreshHoverMediaProgress(HoverCardPresentation card)
+    {
+        if (HoverProgressPanel.Visibility == Visibility.Visible && card.ProgressPercent >= 0)
+        {
+            var trackWidth = Math.Max(220, card.TargetWidth - 40);
+            HoverProgressFill.Width = trackWidth * card.ProgressPercent / 100.0;
+        }
+
+        MediaPlayPauseIcon.Text = MediaPlaybackUiPolicy.PlayPauseGlyph(card.ShowsAudioWave);
     }
     private bool TryRestorePersistentMedia()
     {

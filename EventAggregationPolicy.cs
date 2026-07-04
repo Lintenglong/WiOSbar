@@ -159,6 +159,12 @@ public static class EventAggregationPolicy
     /// </summary>
     public static bool ShouldSuppress(IslandEvent evt, IslandEvent? lastEvent)
     {
+        // Media snapshots may keep the same title/content while progress, artwork,
+        // lyrics, or playing state changes. Let the window decide whether it can
+        // update them incrementally instead of dropping them as duplicates.
+        if (evt.Source == "media")
+            return false;
+
         // 静默期内非关键事件
         if (IsInQuietPeriod(evt))
             return true;
@@ -203,4 +209,37 @@ public sealed record TimestampedEvent(IslandEvent Event, DateTime Timestamp)
 {
     public static TimestampedEvent From(IslandEvent evt) =>
         new(evt, DateTime.UtcNow);
+}
+
+public static class MediaDisplayInterruptionPolicy
+{
+    public static bool ShouldDeferToPersistentMedia(
+        IslandEvent evt,
+        IslandViewKind nextKind,
+        bool mediaActive,
+        bool hasPersistentMedia)
+    {
+        if (!mediaActive || !hasPersistentMedia)
+            return false;
+
+        if (evt.Source == "media")
+            return false;
+
+        if (nextKind == IslandViewKind.Clock)
+            return true;
+
+        return IsPassiveBackgroundSource(evt.Source);
+    }
+
+    public static bool IsPassiveBackgroundSource(string source)
+    {
+        return source is "clock"
+            or "cpu"
+            or "memory"
+            or "disk"
+            or "network"
+            or "network_speed"
+            or "weather"
+            or "temperature";
+    }
 }
