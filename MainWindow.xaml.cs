@@ -41,6 +41,8 @@ public partial class MainWindow : Window
     private string? _currentIconKind;
     private string? _currentSource;
     private IslandEvent? _lastEvent;
+    private IslandEvent? _persistentMediaEvent;
+    private IslandViewPresentation? _persistentMediaView;
     private IslandViewPresentation? _currentView;
     private double _activeTargetWidth;
     private double _activeTargetHeight;
@@ -71,6 +73,15 @@ public partial class MainWindow : Window
 
     private static bool IsKeyDown(int virtualKey) =>
         virtualKey != 0 && (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out CursorPoint point);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CursorPoint
+    {
+        public int X;
+        public int Y;
+    }
 
     private sealed record LoadedMediaIcon(
         IslandMediaIconKind Kind,
@@ -172,6 +183,9 @@ public partial class MainWindow : Window
             _collapseTimer.Stop();
             if (!_settingsPanelOpen)
             {
+                if (TryRestorePersistentMedia())
+                    return;
+
                 // 媒体播放中不切换到时钟，保持当前显示
                 if (_settings.AlwaysVisible && !IsMediaPlaying())
                     ShowIdleClock();
@@ -196,7 +210,7 @@ public partial class MainWindow : Window
         _hoverLeaveTimer.Tick += (_, _) =>
         {
             _hoverLeaveTimer.Stop();
-            if (!IsMouseOver)
+            if (!IsPointerInsideHoverSafeBounds())
                 HideHoverCard();
         };
 
@@ -631,11 +645,16 @@ public partial class MainWindow : Window
         if (view.Kind == IslandViewKind.Clock && !_settings.AlwaysVisible && !_isExpanded)
             return;
 
-        // Stopped/paused media: start collapse timer without overwriting _currentView
-        // (otherwise the hover card would see a zero-progress view).
+        // Stopped/paused media: clear the media base, but do not kill a transient overlay.
         if (evt.Source == "media" && evt.Payload?.IsActive == false)
         {
             _mediaActive = false;
+            _persistentMediaEvent = null;
+            _persistentMediaView = null;
+
+            if (_currentView?.Kind != IslandViewKind.Media)
+                return;
+
             if (MediaPlaybackUiPolicy.ShouldKeepHoverCardForInactiveMedia(
                     _isHoverCard,
                     _currentView?.SourceName))
@@ -655,40 +674,28 @@ public partial class MainWindow : Window
             _collapseTimer.Stop();
             if (!_settings.AlwaysVisible)
                 Collapse();
+            else
+                ShowIdleClock();
             return;
         }
 
         // 独立追踪媒体播放状态，不依赖 _currentView（会被其他事件覆盖）
         if (evt.Source == "media")
         {
-            _mediaActive = view.Kind == IslandViewKind.Media && view.ShowsAudioWave;
-        }
-
-        if (IsAmbientMetricSource(evt.Source) && _currentView is { Kind: IslandViewKind.Media })
-            return;
-
-        // 媒体播放中，非媒体事件不覆盖主显示。
-        // 多岛屿模式下只入栈并同步快照窗口，不更新主岛内容。
-        if (_mediaActive && evt.Source != "media")
-        {
-            if (_settings.DisplayStrategy == IslandDisplayStrategy.Multiple)
+            _mediaActive = view.Kind == IslandViewKind.Media && evt.Payload?.IsActive != false;
+            if (_mediaActive)
             {
-                ApplyStackPolicy(evt, view);
-                PinCurrentStackItemAsLatest();
-                if (IsStackedIslandActive())
+                _persistentMediaEvent = evt;
+                _persistentMediaView = view;
+
+                if (_currentView is not null &&
+                    _currentView.Kind != IslandViewKind.Media &&
+                    _currentSource is not null and not "clock" &&
+                    _collapseTimer.IsEnabled)
                 {
-                    if (!TryCalculateStackedMainPosition(
-                            _activeTargetWidth, _activeTargetHeight,
-                            out var left, out var top, out var layout))
-                    {
-                        layout = null;
-                    }
-                    RepositionCurrentIslandForStack(left, top, TimeSpan.FromMilliseconds(220));
-                    SyncSnapshotWindows(layout, animated: true);
+                    return;
                 }
-                return;
             }
-            return;
         }
 
         ApplyStackPolicy(evt, view);
@@ -1049,11 +1056,61 @@ public partial class MainWindow : Window
     {
         return _mediaActive || _currentView?.Kind == IslandViewKind.Media;
     }
-
-    private static bool IsAmbientMetricSource(string? source)
+    private bool TryRestorePersistentMedia()
     {
-        return source is "cpu" or "memory" or "disk" or "network_speed";
+        if (!_mediaActive || _persistentMediaEvent is null || _persistentMediaView is null)
+            return false;
+        if (_currentView?.Kind == IslandViewKind.Media)
+            return false;
+
+        RenderPersistentMedia();
+        return true;
     }
+
+    private void RenderPersistentMedia()
+    {
+        if (_persistentMediaEvent is null || _persistentMediaView is null)
+            return;
+
+        var evt = _persistentMediaEvent;
+        var view = _persistentMediaView;
+        ApplyStackPolicy(evt, view);
+        _currentView = view;
+        _currentSource = evt.Source;
+        _lastEvent = evt;
+        UpdateIcon(view.IconKind);
+        HideAllPanels();
+        ShowMediaContent(evt, view);
+
+        if (!_isExpanded)
+            Expand(view);
+        else if (_isHoverCard)
+        {
+            var card = HoverCardPresentation.FromCompact(view, _settings);
+            ApplyHoverCardContent(card);
+            MorphHoverCard(HoverCardMotionPlan.CreateOpening(
+                CurrentVisualWidth(view.TargetWidth),
+                CurrentVisualHeight(view.TargetHeight),
+                card.TargetWidth,
+                card.TargetHeight));
+            ResetCollapseTimer();
+        }
+        else
+        {
+            MorphToView(view);
+        }
+    }
+
+    private bool IsPointerInsideHoverSafeBounds(double padding = 24)
+    {
+        if (!GetCursorPos(out var point))
+            return IsMouseOver;
+
+        var local = PointFromScreen(new Point(point.X, point.Y));
+        return local.X >= -padding && local.X <= ActualWidth + padding &&
+               local.Y >= -padding && local.Y <= ActualHeight + padding;
+    }
+
     private bool ShouldEmphasizeSource(string? source)
     {
         if (string.IsNullOrWhiteSpace(source))
@@ -1122,7 +1179,7 @@ public partial class MainWindow : Window
 
     private void HideHoverCard()
     {
-        if (IsMouseOver)
+        if (IsPointerInsideHoverSafeBounds())
             return;
         if (!_isHoverCard) return;
         _isHoverCard = false;
@@ -2969,8 +3026,8 @@ public partial class MainWindow : Window
         if (!_isExpanded || _settingsPanelOpen || _settings.AlwaysVisible) return;
 
         _isExpanded = false;
+        _hoverLeaveTimer.Stop();
         _isHoverCard = false;
-        _mediaActive = false;
         _currentIconKind = null; // 收起后重置，下次展开时动画正常播放
         StopScrolling();
         StopHoverSpring();
