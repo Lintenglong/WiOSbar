@@ -48,7 +48,7 @@ internal sealed class MediaSessionProvider : IMediaSessionProvider
         {
             var playback = session.GetPlaybackInfo();
             var sourceId = session.SourceAppUserModelId ?? "";
-            var isBrowser = IsBrowserSource(sourceId);
+            var isBrowser = MediaSnapshotSelectionPolicy.IsBrowserSource(sourceId);
 
             // For high-priority sources (music apps), also accept Paused/Opened/Changing status
             // if title is present — some players (e.g. Kugou) don't always report Playing correctly.
@@ -77,18 +77,17 @@ internal sealed class MediaSessionProvider : IMediaSessionProvider
             if (string.IsNullOrWhiteSpace(title))
                 continue;
 
-            // Browser sessions: reject if timeline shows no real media progress.
-            // Edge registers a GSMTC session for any media-capable tab; when the user
-            // navigates away the old session lingers as "Playing" with a frozen position.
-            if (isBrowser)
-            {
-                var hasDuration = timeline.EndTime > timeline.StartTime;
-                var hasProgress = timeline.Position > timeline.StartTime;
-                if (!hasDuration && !hasProgress)
-                    continue;
-            }
+            var hasDuration = timeline.EndTime > timeline.StartTime;
+            var hasProgress = timeline.Position > timeline.StartTime;
 
-            var progress = CalculateProgressPercent(timeline.Position, timeline.StartTime, timeline.EndTime);
+            // Browser live streams often report a playing title without a useful
+            // timeline. Accept the session, but do not show a fake 0% progress bar.
+            if (isBrowser && !MediaSnapshotSelectionPolicy.ShouldAcceptBrowserSession(title, hasDuration, hasProgress))
+                continue;
+
+            var progress = isBrowser && !hasDuration && !hasProgress
+                ? -1
+                : CalculateProgressPercent(timeline.Position, timeline.StartTime, timeline.EndTime);
             var sourceName = MediaIslandEventFactory.FriendlySourceName(sourceId);
 
             // Read ticks for real-time progress interpolation
@@ -98,7 +97,7 @@ internal sealed class MediaSessionProvider : IMediaSessionProvider
 
             // Browser site badge detection
             var sourceBadge = (string?)null;
-            if (IsBrowserSource(sourceId))
+            if (MediaSnapshotSelectionPolicy.IsBrowserSource(sourceId))
             {
                 sourceBadge = FindBrowserSiteBadge(sourceId);
             }
@@ -224,16 +223,6 @@ internal sealed class MediaSessionProvider : IMediaSessionProvider
         {
             return true;
         }
-    }
-
-    /// <summary>Check if the source is a browser.</summary>
-    private static bool IsBrowserSource(string sourceId)
-    {
-        if (string.IsNullOrWhiteSpace(sourceId))
-            return false;
-        var lower = sourceId.ToLowerInvariant();
-        return lower.Contains("chrome") || lower.Contains("edge") ||
-               lower.Contains("msedge") || lower.Contains("firefox");
     }
 
     /// <summary>Find the browser's window title and extract the site badge.</summary>

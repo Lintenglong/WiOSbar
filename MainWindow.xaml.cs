@@ -1046,6 +1046,8 @@ public partial class MainWindow : Window
             || !string.Equals(current.SecondaryLyricLine, view.SecondaryLyricLine, StringComparison.Ordinal)
             || !string.Equals(current.AlbumArtPath, view.AlbumArtPath, StringComparison.OrdinalIgnoreCase)
             || !string.Equals(current.AppIconPath, view.AppIconPath, StringComparison.OrdinalIgnoreCase);
+        var needsHoverBadgeRefresh = _isHoverCard &&
+            !string.Equals(current.StatusBadge, view.StatusBadge, StringComparison.Ordinal);
 
         _currentView = view;
         _currentSource = evt.Source;
@@ -1064,7 +1066,9 @@ public partial class MainWindow : Window
         else
         {
             RefreshCompactMediaProgress(view);
-            if (_isHoverCard)
+            if (needsHoverBadgeRefresh)
+                ApplyHoverCardContent(HoverCardPresentation.FromCompact(view, _settings));
+            else if (_isHoverCard)
                 RefreshHoverMediaProgress(HoverCardPresentation.FromCompact(view, _settings));
         }
 
@@ -1077,8 +1081,7 @@ public partial class MainWindow : Window
             && string.Equals(current.Title, next.Title, StringComparison.Ordinal)
             && string.Equals(current.Content, next.Content, StringComparison.Ordinal)
             && string.Equals(current.Subtitle, next.Subtitle, StringComparison.Ordinal)
-            && string.Equals(current.SourceName, next.SourceName, StringComparison.Ordinal)
-            && string.Equals(current.StatusBadge, next.StatusBadge, StringComparison.Ordinal);
+            && string.Equals(current.SourceName, next.SourceName, StringComparison.Ordinal);
     }
 
     private bool MediaCompactProgressVisibility(IslandViewPresentation view)
@@ -2829,6 +2832,13 @@ public partial class MainWindow : Window
 
     private void ShowIdleClock()
     {
+        if (_mediaActive && _persistentMediaEvent is not null && _persistentMediaView is not null)
+        {
+            if (_currentView?.Kind != IslandViewKind.Media)
+                TryRestorePersistentMedia();
+            return;
+        }
+
         ClearIslandStack(animated: true);
         var now = DateTime.Now;
         var evt = new IslandEvent(

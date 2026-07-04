@@ -1071,6 +1071,39 @@ Test("media signature changes when artwork arrives later", () =>
         MediaSnapshotSelectionPolicy.BuildSignature(withArtwork));
 });
 
+Test("browser playing sessions without timeline are accepted", () =>
+{
+    AssertEqual(true, MediaSnapshotSelectionPolicy.ShouldAcceptBrowserSession(
+        "Lo-fi radio - YouTube",
+        hasDuration: false,
+        hasProgress: false));
+    AssertEqual(false, MediaSnapshotSelectionPolicy.ShouldAcceptBrowserSession(
+        "New Tab",
+        hasDuration: false,
+        hasProgress: false));
+});
+
+Test("browser media tolerates transient missing snapshots", () =>
+{
+    var browser = new MediaSnapshot(
+        SourceAppUserModelId: "msedge.exe",
+        SourceName: "Microsoft Edge",
+        Title: "Lo-fi radio - YouTube",
+        Artist: "",
+        Album: "",
+        IsPlaying: true,
+        ProgressPercent: 20);
+
+    AssertEqual(true, MediaSnapshotContinuityPolicy.ShouldKeepDuringMiss(
+        browser,
+        missedPolls: 30,
+        fallbackMissedPolls: 20));
+    AssertEqual(false, MediaSnapshotContinuityPolicy.ShouldKeepDuringMiss(
+        browser,
+        missedPolls: MediaSnapshotContinuityPolicy.BrowserMissedPollsBeforeStopped,
+        fallbackMissedPolls: 20));
+});
+
 Test("browser media may publish before slow artwork is ready", () =>
 {
     AssertAtMost(250, MediaArtworkReadPolicy.InitialReadTimeoutMilliseconds);

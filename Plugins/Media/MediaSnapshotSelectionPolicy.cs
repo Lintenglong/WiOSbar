@@ -147,6 +147,43 @@ public static class MediaSnapshotSelectionPolicy
         return false;
     }
 
+    public static bool IsBrowserSource(string? sourceId)
+    {
+        if (string.IsNullOrWhiteSpace(sourceId))
+            return false;
+
+        var lower = sourceId.ToLowerInvariant();
+        return lower.Contains("chrome", StringComparison.Ordinal) ||
+               lower.Contains("edge", StringComparison.Ordinal) ||
+               lower.Contains("msedge", StringComparison.Ordinal) ||
+               lower.Contains("firefox", StringComparison.Ordinal);
+    }
+
+    public static bool ShouldAcceptBrowserSession(
+        string? title,
+        bool hasDuration,
+        bool hasProgress)
+    {
+        _ = hasDuration;
+        _ = hasProgress;
+
+        if (string.IsNullOrWhiteSpace(title))
+            return false;
+
+        var normalized = title.Trim();
+        if (normalized.Length < 2)
+            return false;
+
+        var lower = normalized.ToLowerInvariant();
+        return lower is not "new tab"
+            and not "about:blank"
+            and not "microsoft edge"
+            and not "google chrome"
+            and not "chrome"
+            and not "mozilla firefox"
+            and not "firefox";
+    }
+
     private static string SourceFamily(string sourceId)
     {
         if (sourceId.Contains("kugou", StringComparison.Ordinal) ||
@@ -199,5 +236,42 @@ public static class MediaSnapshotSelectionPolicy
             snapshot.ProgressPercent.ToString(),
             snapshot.AlbumArtPath ?? "",
             snapshot.SourceIconPath ?? "");
+    }
+}
+
+public static class MediaSnapshotContinuityPolicy
+{
+    public const int DefaultMissedPollsBeforeStopped = 20;
+    public const int BrowserMissedPollsBeforeStopped = 180;
+    public const int HighPriorityMissedPollsBeforeStopped = 60;
+
+    public static int ResolveMissedPollsBeforeStopped(
+        MediaSnapshot? lastActiveSnapshot,
+        int fallbackMissedPolls = DefaultMissedPollsBeforeStopped)
+    {
+        if (lastActiveSnapshot is null)
+            return Math.Max(1, fallbackMissedPolls);
+
+        if (MediaSnapshotSelectionPolicy.IsBrowserSource(lastActiveSnapshot.SourceAppUserModelId) ||
+            MediaSnapshotSelectionPolicy.IsBrowserSource(lastActiveSnapshot.SourceName))
+        {
+            return Math.Max(fallbackMissedPolls, BrowserMissedPollsBeforeStopped);
+        }
+
+        if (MediaSnapshotSelectionPolicy.GetSourcePriority(lastActiveSnapshot.SourceAppUserModelId) >= 100)
+            return Math.Max(fallbackMissedPolls, HighPriorityMissedPollsBeforeStopped);
+
+        return Math.Max(1, fallbackMissedPolls);
+    }
+
+    public static bool ShouldKeepDuringMiss(
+        MediaSnapshot? lastActiveSnapshot,
+        int missedPolls,
+        int fallbackMissedPolls = DefaultMissedPollsBeforeStopped)
+    {
+        if (lastActiveSnapshot is null)
+            return false;
+
+        return missedPolls < ResolveMissedPollsBeforeStopped(lastActiveSnapshot, fallbackMissedPolls);
     }
 }

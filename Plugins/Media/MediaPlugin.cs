@@ -40,6 +40,7 @@ public sealed class MediaPlugin : IIslandPlugin
     // Throttle enrichment to avoid repeated HTTP calls
     private string? _lastEnrichmentKey;
     private MediaSnapshot? _lastEnrichedSnapshot;
+    private MediaSnapshot? _lastActiveSnapshot;
     private string? _currentTrackKey;
     private bool _bgEnrichmentPending;
     private int _missedSnapshotPolls;
@@ -196,12 +197,9 @@ public sealed class MediaPlugin : IIslandPlugin
 
             if (snapshot is null)
             {
-                if (!string.IsNullOrEmpty(_lastSignature) && ++_missedSnapshotPolls >= MissedPollsBeforeStopped)
-                {
-                    _lastSignature = string.Empty;
-                    _lastLyricSignature = string.Empty;
-                    EventTriggered?.Invoke(MediaIslandEventFactory.CreateStopped());
-                }
+                if (ShouldKeepMediaDuringSnapshotMiss())
+                    return;
+
                 return;
             }
 
@@ -213,16 +211,14 @@ public sealed class MediaPlugin : IIslandPlugin
                 if (gsmSnapshot is not null)
                     _suppressFallbackUntilGsmPlaying = true;
 
-                if (!string.IsNullOrEmpty(_lastSignature) && ++_missedSnapshotPolls >= MissedPollsBeforeStopped)
-                {
-                    _lastSignature = string.Empty;
-                    _lastLyricSignature = string.Empty;
-                    EventTriggered?.Invoke(MediaIslandEventFactory.CreateStopped());
-                }
+                if (ShouldKeepMediaDuringSnapshotMiss())
+                    return;
+
                 return;
             }
 
             _missedSnapshotPolls = 0;
+            _lastActiveSnapshot = snapshot;
 
             // Enrich music apps with Kugou lyric and artwork metadata.
             // For new tracks: fire event immediately (no lyrics), then enrich async.
@@ -330,6 +326,8 @@ public sealed class MediaPlugin : IIslandPlugin
                 }
             }
 
+            _lastActiveSnapshot = snapshot;
+
             var signature = MediaSnapshotSelectionPolicy.BuildSignature(snapshot);
             var lyricSig = $"{snapshot.LyricLine ?? ""}|{snapshot.SecondaryLyricLine ?? ""}";
 
@@ -355,6 +353,27 @@ public sealed class MediaPlugin : IIslandPlugin
         {
             _isPolling = false;
         }
+    }
+
+    private bool ShouldKeepMediaDuringSnapshotMiss()
+    {
+        if (string.IsNullOrEmpty(_lastSignature))
+            return false;
+
+        ++_missedSnapshotPolls;
+        if (MediaSnapshotContinuityPolicy.ShouldKeepDuringMiss(
+                _lastActiveSnapshot,
+                _missedSnapshotPolls,
+                MissedPollsBeforeStopped))
+        {
+            return true;
+        }
+
+        _lastSignature = string.Empty;
+        _lastLyricSignature = string.Empty;
+        _lastActiveSnapshot = null;
+        EventTriggered?.Invoke(MediaIslandEventFactory.CreateStopped());
+        return false;
     }
 
     private MediaSnapshot EstimateFallbackPosition(MediaSnapshot snapshot, ProcessAudioPlaybackState audioState)
