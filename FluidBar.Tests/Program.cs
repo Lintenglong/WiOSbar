@@ -303,6 +303,54 @@ Test("media image visual metrics fill the icon well", () =>
     AssertEqual(true, metrics.CropsToCircle);
 });
 
+Test("media progress policy hides unknown progress", () =>
+{
+    AssertEqual(false, MediaProgressPolicy.HasKnownProgress(
+        progressPercent: -1,
+        positionTicks: 0,
+        startTimeTicks: 0,
+        endTicks: 0));
+    AssertEqual(null, MediaProgressPolicy.ResolveProgressFraction(
+        progressPercent: -1,
+        positionTicks: 0,
+        startTimeTicks: 0,
+        endTicks: 0,
+        lastUpdatedTicks: 0,
+        isPlaying: true,
+        currentTickCount: 1000));
+});
+
+Test("media progress policy interpolates known timelines", () =>
+{
+    var start = TimeSpan.Zero.Ticks;
+    var position = TimeSpan.FromSeconds(10).Ticks;
+    var end = TimeSpan.FromSeconds(100).Ticks;
+    var fraction = MediaProgressPolicy.ResolveProgressFraction(
+        progressPercent: 10,
+        positionTicks: position,
+        startTimeTicks: start,
+        endTicks: end,
+        lastUpdatedTicks: 1000,
+        isPlaying: true,
+        currentTickCount: 6000);
+
+    AssertNear(0.15, fraction ?? -1, 0.001);
+});
+
+Test("media progress policy uses percent fallback", () =>
+{
+    var fraction = MediaProgressPolicy.ResolveProgressFraction(
+        progressPercent: 42,
+        positionTicks: 0,
+        startTimeTicks: 0,
+        endTicks: 0,
+        lastUpdatedTicks: 0,
+        isPlaying: false,
+        currentTickCount: 0);
+
+    AssertNear(0.42, fraction ?? -1, 0.001);
+});
+
 Test("browser compact media text reserves room for the audio wave", () =>
 {
     var width = MediaLayoutPolicy.CompactTextWidth(targetWidth: 390, showsAudioWave: true);

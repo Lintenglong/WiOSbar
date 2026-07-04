@@ -71,6 +71,58 @@ public static class IslandMediaVisualPolicy
     }
 }
 
+public static class MediaProgressPolicy
+{
+    private const long TicksPerMillisecond = 10_000;
+
+    public static bool HasKnownProgress(
+        int progressPercent,
+        long positionTicks,
+        long startTimeTicks,
+        long endTicks)
+    {
+        if (progressPercent < 0)
+            return false;
+
+        if (endTicks > startTimeTicks)
+            return true;
+
+        return progressPercent > 0;
+    }
+
+    public static double? ResolveProgressFraction(
+        int progressPercent,
+        long positionTicks,
+        long startTimeTicks,
+        long endTicks,
+        long lastUpdatedTicks,
+        bool isPlaying,
+        long currentTickCount)
+    {
+        if (!HasKnownProgress(progressPercent, positionTicks, startTimeTicks, endTicks))
+            return null;
+
+        if (endTicks > startTimeTicks)
+        {
+            var currentPositionTicks = positionTicks;
+            if (isPlaying && lastUpdatedTicks > 0)
+            {
+                var elapsedMilliseconds = currentTickCount - lastUpdatedTicks;
+                if (elapsedMilliseconds > 0)
+                    currentPositionTicks += elapsedMilliseconds * TicksPerMillisecond;
+            }
+
+            var durationTicks = endTicks - startTimeTicks;
+            return Math.Clamp(
+                (double)(currentPositionTicks - startTimeTicks) / durationTicks,
+                0.0,
+                1.0);
+        }
+
+        return Math.Clamp(progressPercent / 100.0, 0.0, 1.0);
+    }
+}
+
 public sealed record MediaHoverTransportLayout(
     double ProgressBottomFromBottom,
     double ProgressTopFromBottom,

@@ -305,7 +305,7 @@ internal sealed class MediaSessionProvider : IMediaSessionProvider
     {
         var duration = end - start;
         if (duration.TotalMilliseconds <= 0)
-            return 0;
+            return -1;
 
         return Math.Clamp(
             (int)Math.Round((position - start).TotalMilliseconds / duration.TotalMilliseconds * 100),

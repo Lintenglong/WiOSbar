@@ -1084,11 +1084,13 @@ public partial class MainWindow : Window
             && string.Equals(current.SourceName, next.SourceName, StringComparison.Ordinal);
     }
 
-    private bool MediaCompactProgressVisibility(IslandViewPresentation view)
+    private static bool MediaCompactProgressVisibility(IslandViewPresentation view)
     {
-        var isBrowser = IsBrowserSourceId(view.SourceName);
-        var hasPosition = view.PositionTicks > 0 || view.EndTicks > view.StartTimeTicks;
-        return (isBrowser || hasPosition) && view.ProgressPercent >= 0;
+        return MediaProgressPolicy.HasKnownProgress(
+            view.ProgressPercent,
+            view.PositionTicks,
+            view.StartTimeTicks,
+            view.EndTicks);
     }
 
     private void RefreshCompactMediaProgress(IslandViewPresentation view)
@@ -1098,15 +1100,32 @@ public partial class MainWindow : Window
         _mediaStartTimeTicks = view.StartTimeTicks;
         _mediaLastUpdatedTicks = view.LastUpdatedTicks;
 
-        if (ProgressBarPanel.Visibility == Visibility.Visible && view.ProgressPercent >= 0)
+        if (ProgressBarPanel.Visibility == Visibility.Visible)
         {
-            var trackWidth = ProgressBarPanel.ActualWidth > 10
-                ? ProgressBarPanel.ActualWidth
-                : _mediaProgressTrackWidth > 10
-                    ? _mediaProgressTrackWidth
-                    : MediaLayoutPolicy.CompactProgressWidth(view.TargetWidth, view.ShowsAudioWave);
-            ProgressFill.BeginAnimation(Border.WidthProperty, null);
-            ProgressFill.Width = Math.Max(0, trackWidth * view.ProgressPercent / 100.0);
+            var fraction = MediaProgressPolicy.ResolveProgressFraction(
+                view.ProgressPercent,
+                view.PositionTicks,
+                view.StartTimeTicks,
+                view.EndTicks,
+                view.LastUpdatedTicks,
+                view.ShowsAudioWave,
+                Environment.TickCount64);
+            if (fraction is double value)
+            {
+                var trackWidth = ProgressBarPanel.ActualWidth > 10
+                    ? ProgressBarPanel.ActualWidth
+                    : _mediaProgressTrackWidth > 10
+                        ? _mediaProgressTrackWidth
+                        : MediaLayoutPolicy.CompactProgressWidth(view.TargetWidth, view.ShowsAudioWave);
+                ProgressFill.BeginAnimation(Border.WidthProperty, null);
+                ProgressFill.Width = Math.Max(0, trackWidth * value);
+            }
+            else
+            {
+                ProgressBarPanel.Visibility = Visibility.Collapsed;
+                ProgressFill.BeginAnimation(Border.WidthProperty, null);
+                ProgressFill.Width = 0;
+            }
         }
 
         MediaPlayPauseIcon.Text = MediaPlaybackUiPolicy.PlayPauseGlyph(view.ShowsAudioWave);
@@ -1114,10 +1133,26 @@ public partial class MainWindow : Window
 
     private void RefreshHoverMediaProgress(HoverCardPresentation card)
     {
-        if (HoverProgressPanel.Visibility == Visibility.Visible && card.ProgressPercent >= 0)
+        if (HoverProgressPanel.Visibility == Visibility.Visible)
         {
-            var trackWidth = Math.Max(220, card.TargetWidth - 40);
-            HoverProgressFill.Width = trackWidth * card.ProgressPercent / 100.0;
+            var fraction = MediaProgressPolicy.ResolveProgressFraction(
+                card.ProgressPercent,
+                card.PositionTicks,
+                card.StartTimeTicks,
+                card.EndTicks,
+                card.LastUpdatedTicks,
+                card.ShowsAudioWave,
+                Environment.TickCount64);
+            if (fraction is double value)
+            {
+                var trackWidth = Math.Max(220, card.TargetWidth - 40);
+                HoverProgressFill.Width = trackWidth * value;
+            }
+            else
+            {
+                HoverProgressPanel.Visibility = Visibility.Collapsed;
+                HoverProgressFill.Width = 0;
+            }
         }
 
         MediaPlayPauseIcon.Text = MediaPlaybackUiPolicy.PlayPauseGlyph(card.ShowsAudioWave);
@@ -1632,11 +1667,18 @@ public partial class MainWindow : Window
             }
         }
 
-        var hoverHasPosition = card.PositionTicks > 0 || card.EndTicks > card.StartTimeTicks;
-        var hoverIsBrowser = IsBrowserSourceId(card.SourceName);
-        var hoverHasProgress = card.ProgressPercent >= 0;
+        var hoverProgressFraction = card.Kind == IslandViewKind.Media
+            ? MediaProgressPolicy.ResolveProgressFraction(
+                card.ProgressPercent,
+                card.PositionTicks,
+                card.StartTimeTicks,
+                card.EndTicks,
+                card.LastUpdatedTicks,
+                card.ShowsAudioWave,
+                Environment.TickCount64)
+            : null;
         HoverProgressPanel.Visibility = card.Kind is IslandViewKind.Progress
-            || (card.Kind == IslandViewKind.Media && (hoverIsBrowser || hoverHasPosition) && hoverHasProgress)
+            || (card.Kind == IslandViewKind.Media && hoverProgressFraction is not null)
             ? Visibility.Visible
             : Visibility.Collapsed;
         if (HoverProgressPanel.Visibility == Visibility.Visible)
@@ -1644,28 +1686,21 @@ public partial class MainWindow : Window
         MediaControlsPanel.Visibility = MediaPlaybackUiPolicy.ShouldShowTransportControls(card.Kind)
             ? Visibility.Visible
             : Visibility.Collapsed;
-        if (card.Kind == IslandViewKind.Media && !IsBrowserSourceId(card.SourceName))
-        {
-            // Music app: no progress bar for Kugou
-            HoverProgressPanel.Visibility = Visibility.Collapsed;
-            if (card.ProgressPercent >= 0)
-            {
-                var hoverTrackWidth = Math.Max(220, card.TargetWidth - 40);
-                HoverProgressFill.Width = hoverTrackWidth * card.ProgressPercent / 100.0;
-            }
-            MediaPlayPauseIcon.Text = MediaPlaybackUiPolicy.PlayPauseGlyph(card.ShowsAudioWave);
-        }
-        else if (card.Kind == IslandViewKind.Progress)
+        if (card.Kind == IslandViewKind.Progress)
         {
             var trackWidth = Math.Max(220, card.TargetWidth - 40);
             HoverProgressFill.Width = trackWidth * Math.Max(0, card.ProgressPercent) / 100.0;
         }
         else if (card.Kind == IslandViewKind.Media)
         {
-            if (card.ProgressPercent >= 0)
+            if (hoverProgressFraction is double fraction)
             {
                 var hoverTrackWidth = Math.Max(220, card.TargetWidth - 40);
-                HoverProgressFill.Width = hoverTrackWidth * card.ProgressPercent / 100.0;
+                HoverProgressFill.Width = hoverTrackWidth * fraction;
+            }
+            else
+            {
+                HoverProgressFill.Width = 0;
             }
             MediaPlayPauseIcon.Text = MediaPlaybackUiPolicy.PlayPauseGlyph(card.ShowsAudioWave);
         }
@@ -2374,8 +2409,14 @@ public partial class MainWindow : Window
         var isBrowser = IsBrowserSourceId(view.SourceName);
         var isMusicApp = !isBrowser && !string.IsNullOrWhiteSpace(view.SourceName);
         var hasLyrics = !string.IsNullOrWhiteSpace(view.LyricLine);
-        var hasPosition = view.PositionTicks > 0 || view.EndTicks > view.StartTimeTicks;
-        var hasProgress = view.ProgressPercent >= 0; // -1 means no progress data available
+        var progressFraction = MediaProgressPolicy.ResolveProgressFraction(
+            view.ProgressPercent,
+            view.PositionTicks,
+            view.StartTimeTicks,
+            view.EndTicks,
+            view.LastUpdatedTicks,
+            view.ShowsAudioWave,
+            Environment.TickCount64);
         var contentWidth = MediaLayoutPolicy.CompactContentWidth(view.TargetWidth, view.ShowsAudioWave);
         var progressWidth = MediaLayoutPolicy.CompactProgressWidth(view.TargetWidth, view.ShowsAudioWave);
 
@@ -2404,8 +2445,8 @@ public partial class MainWindow : Window
         TitleText.FontSize = isBrowser ? 9 : 10.5;
         TitleText.MaxWidth = contentWidth;
 
-        // Progress bar: always for browsers, only for music apps with real position data
-        if ((isBrowser || hasPosition) && hasProgress)
+        // Progress bar: show only when the media source reports a real progress value.
+        if (progressFraction is double fraction)
         {
             ProgressBarPanel.Visibility = Visibility.Visible;
             ProgressBarPanel.Margin = new Thickness(0, 3, 0, 1);
@@ -2413,7 +2454,7 @@ public partial class MainWindow : Window
             ProgressBarPanel.MaxWidth = progressWidth;
             ProgressTrack.Width = progressWidth;
             _mediaProgressTrackWidth = progressWidth;
-            var targetWidth = Math.Max(0, view.ProgressPercent / 100.0 * progressWidth);
+            var targetWidth = Math.Max(0, fraction * progressWidth);
             ProgressFill.BeginAnimation(System.Windows.Controls.Border.WidthProperty, null);
             ProgressFill.Width = targetWidth;
             ProgressFill.Background = isBrowser
@@ -2423,6 +2464,9 @@ public partial class MainWindow : Window
         else
         {
             ProgressBarPanel.Visibility = Visibility.Collapsed;
+            ProgressFill.BeginAnimation(System.Windows.Controls.Border.WidthProperty, null);
+            ProgressFill.Width = 0;
+            _mediaProgressTrackWidth = 0;
         }
 
         // Audio wave visibility: only when actually playing
@@ -3203,19 +3247,26 @@ public partial class MainWindow : Window
         var h4 = 11 + Math.Sin(_wavePhase + 3.5) * 6;
         SetWaveHeights(h1, h2, h3, h4, TimeSpan.Zero);
 
-        // Interpolate progress bar between SMTC poll updates
-        if (_mediaActive && _mediaEndTicks > _mediaStartTimeTicks)
+        // Interpolate progress bar between SMTC poll updates.
+        if (_mediaActive && ProgressBarPanel.Visibility == Visibility.Visible)
         {
-            var elapsed = Environment.TickCount64 - _mediaLastUpdatedTicks;
-            if (elapsed < 0) elapsed = 0;
-            var durationTicks = _mediaEndTicks - _mediaStartTimeTicks;
-            var currentPosTicks = _mediaPositionTicks + elapsed * 10_000; // ms → .NET ticks
-            var fraction = Math.Clamp((double)(currentPosTicks - _mediaStartTimeTicks) / durationTicks, 0.0, 1.0);
-            var trackWidth = ProgressBarPanel.ActualWidth > 10
-                ? ProgressBarPanel.ActualWidth : _mediaProgressTrackWidth;
-            var targetWidth = fraction * trackWidth;
-            ProgressFill.BeginAnimation(Border.WidthProperty, null);
-            ProgressFill.Width = targetWidth;
+            var fraction = MediaProgressPolicy.ResolveProgressFraction(
+                _currentView?.ProgressPercent ?? -1,
+                _mediaPositionTicks,
+                _mediaStartTimeTicks,
+                _mediaEndTicks,
+                _mediaLastUpdatedTicks,
+                isPlaying: true,
+                currentTickCount: Environment.TickCount64);
+            if (fraction is double value)
+            {
+                var trackWidth = ProgressBarPanel.ActualWidth > 10
+                    ? ProgressBarPanel.ActualWidth
+                    : _mediaProgressTrackWidth;
+                var targetWidth = value * trackWidth;
+                ProgressFill.BeginAnimation(Border.WidthProperty, null);
+                ProgressFill.Width = targetWidth;
+            }
         }
     }
 
